@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center_horizontal"
     tools:context=".ui.activity.SubscriptionActivity">
 
     <com.hjq.bar.TitleBar
@@ -13,25 +12,119 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:title="订阅管理"
-        app:rightIcon="@drawable/ic_add_24"
-        >
+        app:rightIcon="@drawable/ic_add_24">
 
         <ImageView
             android:id="@+id/iv_use_tip"
             android:layout_width="wrap_content"
             android:layout_height="20dp"
-            android:src="@drawable/ic_use_description_24"
             android:layout_gravity="end|center_vertical"
+            android:layout_marginRight="50dp"
             android:paddingLeft="20dp"
-            android:layout_marginRight="50dp"/>
+            android:src="@drawable/ic_use_description_24" />
     </com.hjq.bar.TitleBar>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:background="@drawable/bg_large_round_gray"
-        android:layout_margin="10dp"
-        android:id="@+id/rv"
+    <!-- 快捷操作 -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:listitem="@layout/item_subscription"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+        android:orientation="horizontal"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_paste_add"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="粘贴添加"
+            android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_add"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="手动添加"
+            android:textSize="13sp"
+            app:strokeColor="@color/colorPrimary" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="6dp"
+        android:text="点选即切换当前配置；长按可置顶/重命名/复制"
+        android:textColor="@color/text_sub_foreground"
+        android:textSize="12sp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="16dp"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_subscription" />
+
+        <LinearLayout
+            android:id="@+id/ll_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="还没有订阅"
+                android:textColor="@color/text_foreground"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"
+                android:text="添加接口地址后即可观看\n支持 http(s) 链接或本地 json/txt 文件"
+                android:textColor="@color/text_sub_foreground"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_empty_paste"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="从剪贴板添加" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_empty_add"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="手动输入订阅" />
+        </LinearLayout>
+    </FrameLayout>
 </LinearLayout>

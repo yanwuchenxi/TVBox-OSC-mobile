@@ -50,48 +50,20 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         })
 
         mSubscriptionAdapter.setNewData(mSubscriptions)
+        refreshEmptyState()
+
+        mBinding.btnPasteAdd.setOnClickListener { pasteAddFromClipboard() }
+        mBinding.btnAdd.setOnClickListener { showAddSubscriptionDialog() }
+        mBinding.btnEmptyPaste.setOnClickListener { pasteAddFromClipboard() }
+        mBinding.btnEmptyAdd.setOnClickListener { showAddSubscriptionDialog() }
+
         mBinding.ivUseTip.setOnClickListener {
             XPopup.Builder(this)
                 .asCustom(SubsTipDialog(this))
                 .show()
         }
 
-        mBinding.titleBar.rightView.setOnClickListener {//添加订阅
-            XPopup.Builder(this)
-                .autoFocusEditText(false)
-                .asCustom(
-                    SubsciptionDialog(
-                        this,
-                        "订阅: " + (mSubscriptions.size + 1),
-                        object : OnSubsciptionListener {
-                            override fun onConfirm(
-                                name: String,
-                                url: String,
-                                checked: Boolean
-                            ) { //只有addSub2List用到,看注释,单线路才生效,其余方法仅作为参数继续传递
-                                for (item in mSubscriptions) {
-                                    if (item.url == url) {
-                                        ToastUtils.showLong("订阅地址与" + item.name + "相同")
-                                        return
-                                    }
-                                }
-                                addSubscription(name, url, checked)
-                            }
-
-                            override fun chooseLocal(checked: Boolean) { //本地导入
-                                if (!XXPermissions.isGranted(
-                                        mContext,
-                                        Permission.MANAGE_EXTERNAL_STORAGE
-                                    )
-                                ) {
-                                    showPermissionTipPopup(checked)
-                                } else {
-                                    pickFile(checked)
-                                }
-                            }
-                        })
-                ).show()
-        }
+        mBinding.titleBar.rightView.setOnClickListener { showAddSubscriptionDialog() }
 
         mSubscriptionAdapter.setOnItemChildClickListener { _: BaseQuickAdapter<*, *>?, view: View, position: Int ->
             LogUtils.d("删除订阅")
@@ -119,8 +91,11 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                     subscription.setChecked(false)
                 }
             }
-            //删除/选择只刷新,不触发重新排序
+            // 立即持久化，避免仅 onPause 时才写入导致异常退出丢失
+            Hawk.put(HawkConfig.API_URL, mSelectedUrl)
+            Hawk.put(HawkConfig.SUBSCRIPTIONS, mSubscriptions)
             mSubscriptionAdapter.notifyDataSetChanged()
+            ToastUtils.showShort("已切换：" + mSubscriptions[position].name)
         }
 
         mSubscriptionAdapter.onItemLongClickListener =
@@ -141,6 +116,7 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                                 item.isTop = !item.isTop
                                 mSubscriptions[position] = item
                                 mSubscriptionAdapter.setNewData(mSubscriptions)
+                                refreshEmptyState()
                             }
                             1 -> {
                                 XPopup.Builder(this)
@@ -237,6 +213,7 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         if (url.startsWith("clan://")) {
             addSub2List(name, url, checked)
             mSubscriptionAdapter.setNewData(mSubscriptions)
+            refreshEmptyState()
         } else if (url.startsWith("http")) {
             showLoadingDialog()
             OkGo.get<String>(url)
@@ -303,6 +280,7 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                             addSub2List(name, url, checked)
                         }
                         mSubscriptionAdapter.setNewData(mSubscriptions)
+                        refreshEmptyState()
                     }
 
                     @Throws(Throwable::class)
@@ -341,6 +319,75 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         }
     }
 
+
+    private fun refreshEmptyState() {
+        val empty = mSubscriptions.isEmpty()
+        mBinding.llEmpty.visibility = if (empty) View.VISIBLE else View.GONE
+        mBinding.rv.visibility = if (empty) View.GONE else View.VISIBLE
+    }
+
+    private fun showAddSubscriptionDialog() {
+        XPopup.Builder(this)
+            .autoFocusEditText(false)
+            .asCustom(
+                SubsciptionDialog(
+                    this,
+                    "订阅" + (mSubscriptions.size + 1),
+                    object : OnSubsciptionListener {
+                        override fun onConfirm(name: String, url: String, checked: Boolean) {
+                            for (item in mSubscriptions) {
+                                if (item.url == url) {
+                                    ToastUtils.showLong("订阅地址与" + item.name + "相同")
+                                    return
+                                }
+                            }
+                            addSubscription(name, url, checked)
+                        }
+
+                        override fun chooseLocal(checked: Boolean) {
+                            if (!XXPermissions.isGranted(
+                                    mContext,
+                                    Permission.MANAGE_EXTERNAL_STORAGE
+                                )
+                            ) {
+                                showPermissionTipPopup(checked)
+                            } else {
+                                pickFile(checked)
+                            }
+                        }
+                    })
+            ).show()
+    }
+
+    private fun pasteAddFromClipboard() {
+        try {
+            val clip = ClipboardUtils.getText()?.toString()?.trim().orEmpty()
+            if (clip.isEmpty()) {
+                ToastUtils.showShort("剪贴板为空，请先复制订阅地址")
+                return
+            }
+            val url = SubsciptionDialog.normalizeUrl(clip)
+            if (!SubsciptionDialog.looksLikeUrl(url) && !url.startsWith("clan://")) {
+                // 仍打开弹窗，方便用户改
+                showAddSubscriptionDialog()
+                ToastUtils.showShort("剪贴板内容不像链接，请确认")
+                return
+            }
+            for (item in mSubscriptions) {
+                if (item.url == url) {
+                    ToastUtils.showLong("已存在相同地址：" + item.name)
+                    return
+                }
+            }
+            val name = SubsciptionDialog.suggestName(url)
+            addSubscription(name, url, true)
+            ToastUtils.showShort("已从剪贴板添加")
+        } catch (e: Throwable) {
+            e.printStackTrace()
+            showAddSubscriptionDialog()
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         // 更新缓存
@@ -351,6 +398,7 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
     override fun finish() {
         //切换了订阅地址
         if (!TextUtils.isEmpty(mSelectedUrl) && mBeforeUrl != mSelectedUrl) {
+            ToastUtils.showShort("正在应用新订阅…")
             val intent = Intent(this, MainActivity::class.java)
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
             startActivity(intent)
