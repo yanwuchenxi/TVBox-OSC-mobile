@@ -1,0 +1,81 @@
+plugins {
+    id 'com.android.library'
+    id 'com.chaquo.python'
+}
+
+android {
+    compileSdkVersion 33
+
+    defaultConfig {
+        minSdkVersion 19
+        targetSdkVersion 28
+        python {
+            // Prefer system python3; override via local.properties python.path if needed
+            def py = "python3"
+            def lp = rootProject.file("local.properties")
+            if (lp.exists()) {
+                def props = new Properties()
+                lp.withInputStream { props.load(it) }
+                if (props.getProperty("python.path")) {
+                    py = props.getProperty("python.path")
+                }
+            }
+            buildPython(py)
+            pip {
+                install "lxml"
+                install "ujson"
+                install "pyquery==2.0.2"
+                install "requests"
+                install "jsonpath"
+                install "cachetools"
+                install 'pycryptodome'
+                install 'beautifulsoup4'
+            }
+        }
+    }
+
+    flavorDimensions "mode"
+    productFlavors {
+        python {
+            dimension "mode"
+            ndk {
+                abiFilters "armeabi-v7a", "arm64-v8a"
+            }
+        }
+        python32 {
+            dimension "mode"
+            ndk {
+                abiFilters "armeabi-v7a"
+            }
+        }
+        python64 {
+            dimension "mode"
+            ndk {
+                abiFilters "arm64-v8a"
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    sourceSets {
+        main {
+            setRoot "src/main"
+            python.srcDirs = ["src/python"]
+        }
+    }
+}
+
+dependencies {
+}

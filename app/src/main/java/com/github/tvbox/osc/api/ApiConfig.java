@@ -67,6 +67,7 @@ public class ApiConfig {
 
     private JarLoader jarLoader = new JarLoader();
     private JsLoader jsLoader = new JsLoader();
+    private com.github.catvod.crawler.python.IPyLoader pyLoader = new com.github.catvod.crawler.python.PyLoaderStub();
 
     private String userAgent = "okhttp/3.15";
 
@@ -659,10 +660,8 @@ public class ApiConfig {
         boolean js = api.endsWith(".js") || api.contains(".js?");
         boolean py = api.endsWith(".py") || api.contains(".py?") || api.contains("python");
         if (py) {
-            // Python 爬虫需完整 Python 运行时（如 Chaquopy/Pyramid），当前手机版未内置
-            // 返回空实现避免崩溃，并在日志中提示
-            com.github.tvbox.osc.util.LOG.e("Python source not supported in this build: " + sourceBean.getKey() + " api=" + api);
-            return new com.github.catvod.crawler.SpiderNull();
+            // 走 IPyLoader；默认 PyLoaderStub。启用 :pyramid + Chaquopy 后可替换为真实现
+            return pyLoader.getSpider(sourceBean.getKey(), sourceBean.getApi(), sourceBean.getExt());
         }
         if (js) return jsLoader.getSpider(sourceBean.getKey(), sourceBean.getApi(), sourceBean.getExt(), sourceBean.getJar());
         return jarLoader.getSpider(sourceBean.getKey(), sourceBean.getApi(), sourceBean.getExt(), sourceBean.getJar());

@@ -378,10 +378,26 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
             }
 
             override fun onAllFinished(ok: Int, fail: Int) {
+                // 有效性排序：有效 > 检测中/未知 > 失效，置顶与选中优先保持
+                mSubscriptions.sortWith(Comparator { a, b ->
+                    fun rank(s: Subscription): Int {
+                        if (s.isTop) return -100
+                        if (s.isChecked) return -50
+                        return when (s.healthStatus) {
+                            Subscription.STATUS_OK -> 0
+                            Subscription.STATUS_CHECKING -> 1
+                            Subscription.STATUS_UNKNOWN -> 2
+                            else -> 3
+                        }
+                    }
+                    rank(a) - rank(b)
+                })
+                mSubscriptionAdapter.setNewData(mSubscriptions)
+                refreshEmptyState()
+                Hawk.put(HawkConfig.SUBSCRIPTIONS, mSubscriptions)
                 if (showToast) {
-                    ToastUtils.showShort("检测完成：有效 " + ok + " / 失效 " + fail)
+                    ToastUtils.showShort("检测完成：有效 " + ok + " / 失效 " + fail + "（已按有效性排序）")
                 }
-                // 当前使用的订阅失效时强提示
                 for (s in mSubscriptions) {
                     if (s.isChecked && s.healthStatus == Subscription.STATUS_FAIL) {
                         ToastUtils.showLong("当前订阅可能已失效：" + s.name + "（" + s.healthMsg + "）")

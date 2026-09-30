@@ -6,7 +6,7 @@
     android:layout_gravity="center"
     android:background="@drawable/bg_large_round_popup"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="16dp">
 
     <TextView
         android:id="@+id/title"
@@ -21,39 +21,59 @@
         android:id="@+id/tv_url"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="8dp"
         android:background="#12000000"
         android:ellipsize="middle"
-        android:maxLines="4"
-        android:padding="10dp"
+        android:maxLines="3"
+        android:padding="8dp"
         android:textColor="@color/text_sub_foreground"
         android:textIsSelectable="true"
-        android:textSize="12sp" />
+        android:textSize="11sp" />
 
     <TextView
+        android:id="@+id/tv_status"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="可将播放地址复制或分享到投屏/其它播放器应用。局域网 DLNA 设备搜索需设备支持。"
+        android:text="准备搜索…"
         android:textColor="@color/text_sub_foreground"
-        android:textSize="11sp" />
+        android:textSize="12sp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_devices"
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:layout_marginTop="6dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_search"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="重新搜索"
+            android:textSize="12sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_copy"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="40dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="6dp"
             android:layout_weight="1"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:text="复制链接" />
+            android:text="复制链接"
+            android:textSize="12sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_share"
@@ -62,7 +82,8 @@
             android:layout_weight="1"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:text="分享投屏" />
+            android:text="分享"
+            android:textSize="12sp" />
     </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
@@ -70,6 +91,5 @@
         style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:layout_marginTop="4dp"
         android:text="关闭" />
 </LinearLayout>
