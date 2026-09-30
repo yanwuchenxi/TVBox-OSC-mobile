@@ -238,7 +238,18 @@ public class PythonLoader {
         if (stringCallback != null) {
             return stringCallback.get(url, str2map(header));
         } else {
-            return OkHttp.string(url, str2map(header));
+            try {
+                Map<String, String> hs = str2map(header);
+                okhttp3.Headers.Builder hb = new okhttp3.Headers.Builder();
+                if (hs != null) {
+                    for (Map.Entry<String, String> e : hs.entrySet()) {
+                        if (e.getKey() != null && e.getValue() != null) hb.add(e.getKey(), e.getValue());
+                    }
+                }
+                return OkHttp.newCall(url, hb.build()).execute().body().string();
+            } catch (Throwable ex) {
+                return OkHttp.string(url);
+            }
         }
     }
 

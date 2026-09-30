@@ -23,12 +23,12 @@ public class PyLoaderStub implements IPyLoader {
     }
 
     @Override
-    public Object[] proxyInvoke(Map params) {
+    public Object[] proxyInvoke(Map<String, String> params) {
         return new Object[0];
     }
 
     @Override
-    public Object[] proxyInvoke(Map params, String key) {
+    public Object[] proxyInvoke(Map<String, String> params, String key) {
         return new Object[0];
     }
 }
