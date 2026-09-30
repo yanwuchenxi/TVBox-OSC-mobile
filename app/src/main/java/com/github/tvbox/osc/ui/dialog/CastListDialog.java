@@ -17,6 +17,7 @@ import com.blankj.utilcode.util.ClipboardUtils;
 import com.blankj.utilcode.util.ToastUtils;
 import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.bean.CastVideo;
+import com.github.tvbox.osc.util.DlnaCastController;
 import com.github.tvbox.osc.util.DlnaDeviceScanner;
 import com.lxj.xpopup.core.CenterPopupView;
 
@@ -61,10 +62,28 @@ public class CastListDialog extends CenterPopupView {
         if (rv != null) {
             rv.setLayoutManager(new LinearLayoutManager(getContext()));
             adapter = new DeviceAdapter(devices, device -> {
-                // 选中设备：复制地址并提示用投屏 App / 电视端打开
-                ClipboardUtils.copyText(castVideo.getUrl());
-                ToastUtils.showLong("已复制播放地址\n设备：" + device.displayName() +
-                        (device.location != null ? ("\n" + device.location) : ""));
+                if (tvStatus != null) tvStatus.setText("正在推流到 " + device.displayName() + "…");
+                String loc = device.location;
+                if (loc == null || loc.isEmpty()) {
+                    ClipboardUtils.copyText(castVideo.getUrl());
+                    ToastUtils.showLong("无设备描述地址，已复制播放链接");
+                    return;
+                }
+                DlnaCastController.push(loc, castVideo.getUrl(), castVideo.getName(),
+                        new DlnaCastController.Callback() {
+                            @Override
+                            public void onSuccess(String msg) {
+                                if (tvStatus != null) tvStatus.setText(msg);
+                                ToastUtils.showLong(msg);
+                            }
+
+                            @Override
+                            public void onError(String msg) {
+                                if (tvStatus != null) tvStatus.setText(msg);
+                                ToastUtils.showLong(msg + "（已复制链接备用）");
+                                ClipboardUtils.copyText(castVideo.getUrl());
+                            }
+                        });
             });
             rv.setAdapter(adapter);
         }

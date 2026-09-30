@@ -1,6 +1,12 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
+def enablePython = project.hasProperty('enablePython') && project.property('enablePython').toString() == 'true'
+if (enablePython) {
+    apply plugin: 'com.chaquo.python'
+}
+
+
 android {
     compileSdkVersion 33
 
@@ -19,10 +25,54 @@ android {
         }
 
         ndk {
-            //abiFilters "armeabi-v7a"//, ""
             abiFilters "arm64-v8a"
         }
 
+        if (enablePython) {
+            python {
+                def py = "python3"
+                def lp = rootProject.file("local.properties")
+                if (lp.exists()) {
+                    def props = new Properties()
+                    lp.withInputStream { props.load(it) }
+                    if (props.getProperty("python.path")) {
+                        py = props.getProperty("python.path")
+                    }
+                }
+                buildPython py
+                pip {
+                    install "lxml"
+                    install "ujson"
+                    install "pyquery==2.0.2"
+                    install "requests"
+                    install "jsonpath"
+                    install "cachetools"
+                    install "pycryptodome"
+                    install "beautifulsoup4"
+                }
+            }
+        }
+    }
+
+    flavorDimensions "runtime"
+    productFlavors {
+        standard {
+            dimension "runtime"
+            buildConfigField "boolean", "HAS_PYTHON", "false"
+        }
+        python64 {
+            dimension "runtime"
+            buildConfigField "boolean", "HAS_PYTHON", "true"
+            ndk {
+                abiFilters "arm64-v8a"
+            }
+        }
+    }
+
+    sourceSets {
+        python64 {
+            java.srcDirs += 'src/python/java'
+        }
     }
 
     // 执行配置
@@ -83,6 +133,7 @@ android {
     }
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
 
     packagingOptions {//引入dlna-cast时的文件冲突

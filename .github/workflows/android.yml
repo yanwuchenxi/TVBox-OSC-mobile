@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-standard:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,17 +40,65 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Gradle assembleDebug
+      - name: Gradle assembleStandardDebug
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          ./gradlew assembleDebug --stacktrace --no-daemon
+          ./gradlew assembleStandardDebug --stacktrace --no-daemon
 
-      - name: Show APK
-        run: find app/build/outputs -name "*.apk" -ls || true
-
-      - name: Upload APK
+      - name: Upload standard APK
         uses: actions/upload-artifact@v4
         with:
-          name: MBox-debug-apk
+          name: MBox-standard-debug
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: warn
+
+  build-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Android commandline tools
+        run: |
+          SDK_ROOT=$HOME/android-sdk
+          mkdir -p $SDK_ROOT/cmdline-tools
+          cd $SDK_ROOT/cmdline-tools
+          curl -fsSL -o cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdtools.zip
+          mv cmdline-tools latest
+          echo "ANDROID_HOME=$SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
+          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$SDK_ROOT/platform-tools" >> $GITHUB_PATH
+
+      - name: Install SDK packages
+        run: |
+          yes | sdkmanager --sdk_root=$ANDROID_HOME --licenses >/tmp/sdk-licenses.txt || true
+          sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;23.1.7779620" || \
+          sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Gradle assemblePython64Debug with Chaquopy
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          ./gradlew assemblePython64Debug -PenablePython=true --stacktrace --no-daemon
+
+      - name: Upload Python APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MBox-python64-debug
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: warn
+        if: success()

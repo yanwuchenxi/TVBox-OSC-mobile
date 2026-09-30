@@ -67,7 +67,18 @@ public class ApiConfig {
 
     private JarLoader jarLoader = new JarLoader();
     private JsLoader jsLoader = new JsLoader();
-    private com.github.catvod.crawler.python.IPyLoader pyLoader = new com.github.catvod.crawler.python.PyLoaderStub();
+    private com.github.catvod.crawler.python.IPyLoader pyLoader = createPyLoader();
+
+    private static com.github.catvod.crawler.python.IPyLoader createPyLoader() {
+        try {
+            if (com.github.tvbox.osc.BuildConfig.HAS_PYTHON) {
+                Class<?> clz = Class.forName("com.github.catvod.crawler.pyLoader");
+                return (com.github.catvod.crawler.python.IPyLoader) clz.getDeclaredConstructor().newInstance();
+            }
+        } catch (Throwable ignored) {
+        }
+        return new com.github.catvod.crawler.python.PyLoaderStub();
+    }
 
     private String userAgent = "okhttp/3.15";
 
@@ -718,6 +729,25 @@ public class ApiConfig {
 
     public List<SourceBean> getSourceBeanList() {
         return new ArrayList<>(sourceBeanList.values());
+    }
+
+    /** 按给定顺序重排站点（用于有效性检测后排序） */
+    public synchronized void reorderSourceBeans(List<SourceBean> ordered) {
+        if (ordered == null || ordered.isEmpty() || sourceBeanList == null) return;
+        LinkedHashMap<String, SourceBean> map = new LinkedHashMap<>();
+        for (SourceBean sb : ordered) {
+            if (sb != null && sb.getKey() != null) {
+                map.put(sb.getKey(), sb);
+            }
+        }
+        // 补上未包含的
+        for (Map.Entry<String, SourceBean> e : sourceBeanList.entrySet()) {
+            if (!map.containsKey(e.getKey())) {
+                map.put(e.getKey(), e.getValue());
+            }
+        }
+        sourceBeanList.clear();
+        sourceBeanList.putAll(map);
     }
 
     public List<ParseBean> getParseBeanList() {

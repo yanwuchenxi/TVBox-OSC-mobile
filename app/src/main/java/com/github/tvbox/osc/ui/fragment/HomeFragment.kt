@@ -164,6 +164,14 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                 if (ApiConfig.get().spider.isEmpty()) {
                     jarInitOk = true
                 }
+                try {
+                    com.github.tvbox.osc.util.SourceHealthChecker.checkAndSort { ok, fail ->
+                        if (fail > 0) {
+                            com.blankj.utilcode.util.ToastUtils.showShort("站点检测：可用 $ok / 异常 $fail")
+                        }
+                    }
+                } catch (_: Throwable) {
+                }
                 mHandler.postDelayed({ initData() }, 50)
             }
 
