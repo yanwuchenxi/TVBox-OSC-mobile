@@ -14,14 +14,12 @@ import com.github.tvbox.osc.bean.Subscription
 import com.github.tvbox.osc.databinding.ActivitySubscriptionBinding
 import com.github.tvbox.osc.ui.adapter.SubscriptionAdapter
 import com.github.tvbox.osc.ui.dialog.ChooseSourceDialog
+import com.github.tvbox.osc.ui.dialog.MultiLinePreviewDialog
 import com.github.tvbox.osc.ui.dialog.SubsTipDialog
-import com.github.tvbox.osc.ui.dialog.MultiLinePreviewDialog
 import com.github.tvbox.osc.ui.dialog.SubsciptionDialog
-import com.github.tvbox.osc.util.SubscriptionHealthChecker
-import com.github.tvbox.osc.ui.dialog.MultiLinePreviewDialog
-import com.github.tvbox.osc.ui.dialog.SubsciptionDialog
-import com.github.tvbox.osc.util.SubscriptionHealthChecker.OnSubsciptionListener
+import com.github.tvbox.osc.ui.dialog.SubsciptionDialog.OnSubsciptionListener
 import com.github.tvbox.osc.util.HawkConfig
+import com.github.tvbox.osc.util.SubscriptionHealthChecker
 import com.github.tvbox.osc.util.Utils
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
