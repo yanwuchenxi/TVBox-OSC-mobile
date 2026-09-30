@@ -15,8 +15,12 @@ import com.github.tvbox.osc.databinding.ActivitySubscriptionBinding
 import com.github.tvbox.osc.ui.adapter.SubscriptionAdapter
 import com.github.tvbox.osc.ui.dialog.ChooseSourceDialog
 import com.github.tvbox.osc.ui.dialog.SubsTipDialog
+import com.github.tvbox.osc.ui.dialog.MultiLinePreviewDialog
 import com.github.tvbox.osc.ui.dialog.SubsciptionDialog
-import com.github.tvbox.osc.ui.dialog.SubsciptionDialog.OnSubsciptionListener
+import com.github.tvbox.osc.util.SubscriptionHealthChecker
+import com.github.tvbox.osc.ui.dialog.MultiLinePreviewDialog
+import com.github.tvbox.osc.ui.dialog.SubsciptionDialog
+import com.github.tvbox.osc.util.SubscriptionHealthChecker.OnSubsciptionListener
 import com.github.tvbox.osc.util.HawkConfig
 import com.github.tvbox.osc.util.Utils
 import com.google.gson.JsonObject
@@ -54,8 +58,11 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
 
         mBinding.btnPasteAdd.setOnClickListener { pasteAddFromClipboard() }
         mBinding.btnAdd.setOnClickListener { showAddSubscriptionDialog() }
+        mBinding.btnCheck.setOnClickListener { checkAllSubscriptions(true) }
         mBinding.btnEmptyPaste.setOnClickListener { pasteAddFromClipboard() }
         mBinding.btnEmptyAdd.setOnClickListener { showAddSubscriptionDialog() }
+        // 进入页面自动检测一次有效性（后台）
+        mBinding.rv.post { checkAllSubscriptions(false) }
 
         mBinding.ivUseTip.setOnClickListener {
             XPopup.Builder(this)
@@ -227,22 +234,36 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                             val urls = json["urls"]
                             // 多仓?
                             val storeHouse = json["storeHouse"]
-                            if (urls != null && urls.isJsonArray) { // 多线路
-                                if (checked) {
-                                    ToastUtils.showLong("多条线路请主动选择")
-                                }
+                            if (urls != null && urls.isJsonArray) { // 多线路 → 预览勾选导入
                                 val urlList = urls.asJsonArray
                                 if (urlList != null && urlList.size() > 0 && urlList[0].isJsonObject
                                     && urlList[0].asJsonObject.has("url")
                                     && urlList[0].asJsonObject.has("name")
-                                ) { //多线路格式
+                                ) {
+                                    val lines = ArrayList<MultiLinePreviewDialog.LineItem>()
                                     for (i in 0 until urlList.size()) {
                                         val obj = urlList[i] as JsonObject
                                         val name = obj["name"].asString.trim { it <= ' ' }
                                             .replace("<|>|《|》|-".toRegex(), "")
-                                        val url = obj["url"].asString.trim { it <= ' ' }
-                                        mSubscriptions.add(Subscription(name, url))
+                                        val lineUrl = obj["url"].asString.trim { it <= ' ' }
+                                        if (lineUrl.isNotEmpty()) {
+                                            lines.add(MultiLinePreviewDialog.LineItem(name.ifEmpty { "线路${i + 1}" }, lineUrl))
+                                        }
                                     }
+                                    if (lines.isEmpty()) {
+                                        ToastUtils.showShort("多线路为空")
+                                    } else {
+                                        XPopup.Builder(this@SubscriptionActivity)
+                                            .asCustom(
+                                                MultiLinePreviewDialog(
+                                                    this@SubscriptionActivity,
+                                                    lines
+                                                ) { selected ->
+                                                    importLines(selected, checked)
+                                                }
+                                            ).show()
+                                    }
+                                    return
                                 }
                             } else if (storeHouse != null && storeHouse.isJsonArray) { // 多仓
                                 val storeHouseList = storeHouse.asJsonArray
@@ -319,6 +340,60 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         }
     }
 
+
+
+    private fun importLines(selected: List<Subscription>, useFirst: Boolean) {
+        if (selected.isEmpty()) return
+        var added = 0
+        for ((index, sub) in selected.withIndex()) {
+            var exists = false
+            for (item in mSubscriptions) {
+                if (item.url == sub.url) {
+                    exists = true
+                    break
+                }
+            }
+            if (exists) continue
+            if (useFirst && added == 0) {
+                for (s in mSubscriptions) s.setChecked(false)
+                sub.setChecked(true)
+                mSelectedUrl = sub.url
+                Hawk.put(HawkConfig.API_URL, mSelectedUrl)
+            }
+            mSubscriptions.add(sub)
+            added++
+        }
+        Hawk.put(HawkConfig.SUBSCRIPTIONS, mSubscriptions)
+        mSubscriptionAdapter.setNewData(mSubscriptions)
+        refreshEmptyState()
+        ToastUtils.showShort("已导入 " + added + " 条线路")
+        checkAllSubscriptions(true)
+    }
+
+    private fun checkAllSubscriptions(showToast: Boolean) {
+        if (mSubscriptions.isEmpty()) return
+        SubscriptionHealthChecker.checkAll(mSubscriptions, object : SubscriptionHealthChecker.Callback {
+            override fun onOneFinished(item: Subscription?, index: Int) {
+                if (index >= 0 && index < mSubscriptionAdapter.itemCount) {
+                    mSubscriptionAdapter.notifyItemChanged(index)
+                }
+            }
+
+            override fun onAllFinished(ok: Int, fail: Int) {
+                if (showToast) {
+                    ToastUtils.showShort("检测完成：有效 " + ok + " / 失效 " + fail)
+                }
+                // 当前使用的订阅失效时强提示
+                for (s in mSubscriptions) {
+                    if (s.isChecked && s.healthStatus == Subscription.STATUS_FAIL) {
+                        ToastUtils.showLong("当前订阅可能已失效：" + s.name + "（" + s.healthMsg + "）")
+                        Hawk.put("last_sub_fail_msg", s.name + ": " + s.healthMsg)
+                        break
+                    }
+                }
+            }
+        })
+    }
 
     private fun refreshEmptyState() {
         val empty = mSubscriptions.isEmpty()

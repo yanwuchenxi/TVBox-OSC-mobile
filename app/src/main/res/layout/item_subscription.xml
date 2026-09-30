@@ -73,4 +73,17 @@
         android:textColor="@color/text_sub_foreground"
         android:textSize="12sp"
         tools:text="https://example.com/config.json" />
+
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_url"
+        android:layout_marginTop="4dp"
+        android:layout_toRightOf="@id/cb"
+        android:layout_toEndOf="@id/cb"
+        android:textSize="11sp"
+        android:visibility="gone"
+        tools:text="有效"
+        tools:visibility="visible" />
 </RelativeLayout>
