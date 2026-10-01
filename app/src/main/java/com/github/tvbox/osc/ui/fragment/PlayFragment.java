@@ -76,9 +76,11 @@ import com.github.tvbox.osc.player.parse.JsonParseUtil;
 import com.github.tvbox.osc.player.parse.ParseBeanResolver;
 import com.github.tvbox.osc.player.parse.VideoFormatChecker;
 import com.github.tvbox.osc.player.SubtitleCacheKey;
+import com.github.tvbox.osc.player.sniff.SniffResourceInterceptor;
 import com.github.tvbox.osc.player.sniff.SniffWebViewConfig;
 import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.HawkConfig;
+import com.github.tvbox.osc.util.NetworkClient;
 import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.MD5;
 import com.github.tvbox.osc.util.PlayerHelper;
@@ -135,6 +137,23 @@ public class PlayFragment extends BaseLazyFragment {
     private SourceViewModel sourceViewModel;
     private Handler mHandler;
     private final PlayRetryHelper retryHelper = new PlayRetryHelper();
+    private final SniffResourceInterceptor sniffInterceptor = new SniffResourceInterceptor(retryHelper, new SniffResourceInterceptor.Host() {
+        @Override
+        public boolean isVideoUrl(String url) {
+            return checkVideoFormat(url);
+        }
+
+        @Override
+        public void onFirstVideoFound(String url, HashMap<String, String> headers) {
+            playUrl(url, headers);
+            stopLoadWebView(false);
+        }
+
+        @Override
+        public void cancelSniffTimeout() {
+            if (mHandler != null) mHandler.removeMessages(100);
+        }
+    });
 
     private final long videoDuration = -1;
     /**
@@ -1151,6 +1170,7 @@ public class PlayFragment extends BaseLazyFragment {
 
     void initParseLoadFound() {
         retryHelper.resetFound();
+        sniffInterceptor.reset();
     }
 
     public void play(boolean reset) {
@@ -1227,6 +1247,29 @@ public class PlayFragment extends BaseLazyFragment {
         return JsonParseUtil.jsonParse(input, json);
     }
 
+    private void handleJsonJxResult(String json) {
+        try {
+            JSONObject rs = jsonParse(webUrl, json);
+            HashMap<String, String> headers = null;
+            if (rs.has("header")) {
+                try {
+                    JSONObject hds = rs.getJSONObject("header");
+                    Iterator<String> keys = hds.keys();
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        if (headers == null) headers = new HashMap<>();
+                        headers.put(key, hds.getString(key));
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+            playUrl(rs.getString("url"), headers);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            errorWithRetry("解析错误", false);
+        }
+    }
+
     void stopParse() {
         mHandler.removeMessages(100);
         stopLoadWebView(false);
@@ -1277,7 +1320,7 @@ public class PlayFragment extends BaseLazyFragment {
         } else if (pb.getType() == 1) { // json 解析
             setTip("正在解析播放地址", true, false);
             // 解析ext
-            HttpHeaders reqHeaders = new HttpHeaders();
+            HashMap<String, String> reqHeaders = new HashMap<>();
             try {
                 JSONObject jsonObject = new JSONObject(pb.getExt());
                 if (jsonObject.has("header")) {
@@ -1291,56 +1334,19 @@ public class PlayFragment extends BaseLazyFragment {
             } catch (Throwable e) {
                 e.printStackTrace();
             }
-            OkGo.<String>get(pb.getUrl() + encodeUrl(webUrl))
-                    .tag("json_jx")
-                    .headers(reqHeaders)
-                    .execute(new AbsCallback<String>() {
+            NetworkClient.getStringAsync(pb.getUrl() + encodeUrl(webUrl), null, reqHeaders,
+                    new NetworkClient.StringCallback() {
                         @Override
-                        public String convertResponse(okhttp3.Response response) throws Throwable {
-                            if (response.body() != null) {
-                                return response.body().string();
-                            } else {
-                                throw new IllegalStateException("网络请求错误");
-                            }
+                        public void onSuccess(int code, String json) {
+                            handleJsonJxResult(json);
                         }
 
                         @Override
-                        public void onSuccess(Response<String> response) {
-                            String json = response.body();
-                            try {
-                                JSONObject rs = jsonParse(webUrl, json);
-                                HashMap<String, String> headers = null;
-                                if (rs.has("header")) {
-                                    try {
-                                        JSONObject hds = rs.getJSONObject("header");
-                                        Iterator<String> keys = hds.keys();
-                                        while (keys.hasNext()) {
-                                            String key = keys.next();
-                                            if (headers == null) {
-                                                headers = new HashMap<>();
-                                            }
-                                            headers.put(key, hds.getString(key));
-                                        }
-                                    } catch (Throwable th) {
-
-                                    }
-                                }
-                                playUrl(rs.getString("url"), headers);
-                            } catch (Throwable e) {
-                                e.printStackTrace();
-                                errorWithRetry("解析错误", false);
-//                                setTip("解析错误", false, true);
-                            }
-                        }
-
-                        @Override
-                        public void onError(Response<String> response) {
-                            super.onError(response);
+                        public void onError(Throwable e) {
                             errorWithRetry("解析错误", false);
-//                            setTip("解析错误", false, true);
                         }
                     });
-        } else if (pb.getType() == 2) { // json 扩展
+                } else if (pb.getType() == 2) { // json 扩展
             setTip("正在解析播放地址", true, false);
             parseThreadPool = Executors.newSingleThreadExecutor();
             LinkedHashMap<String, String> jxs = new LinkedHashMap<>();
@@ -1467,6 +1473,7 @@ public class PlayFragment extends BaseLazyFragment {
     // 嗅探候选地址由 PlayRetryHelper 管理
 
     void loadWebView(String url) {
+        sniffInterceptor.setPageUrl(webUrl);
         if (mSysWebView == null) {
             mSysWebView = new MyWebView(mContext);
             configWebViewSys(mSysWebView);
@@ -1615,46 +1622,7 @@ public class PlayFragment extends BaseLazyFragment {
         }
 
         WebResourceResponse checkIsVideo(String url, HashMap<String, String> headers) {
-            if (url.endsWith("/favicon.ico")) {
-                if (url.startsWith("http://127.0.0.1")) {
-                    return new WebResourceResponse("image/x-icon", "UTF-8", null);
-                }
-                return null;
-            }
-
-            boolean isFilter = VideoParseRuler.isFilter(webUrl, url);
-            if (isFilter) {
-                LOG.i("shouldInterceptLoadRequest filter:" + url);
-                return null;
-            }
-
-            boolean ad;
-            if (!loadedUrls.containsKey(url)) {
-                ad = AdBlocker.isAd(url);
-                loadedUrls.put(url, ad);
-            } else {
-                ad = Boolean.TRUE.equals(loadedUrls.get(url));
-            }
-
-            if (!ad) {
-                if (checkVideoFormat(url)) {
-                    retryHelper.offerFound(url, headers);
-                    LOG.i("loadFoundVideoUrl:" + url);
-                    if (retryHelper.getLoadFoundCount().incrementAndGet() == 1) {
-                        url = retryHelper.pollFoundUrl();
-                        mHandler.removeMessages(100);
-                        String cookie = CookieManager.getInstance().getCookie(url);
-                        if (!TextUtils.isEmpty(cookie))
-                            headers.put("Cookie", " " + cookie);//携带cookie
-                        playUrl(url, headers);
-                        stopLoadWebView(false);
-                    }
-                }
-            }
-
-            return ad || retryHelper.getLoadFoundCount().get() > 0 ?
-                    AdBlocker.createEmptyResource() :
-                    null;
+            return sniffInterceptor.intercept(url, headers);
         }
 
         @Nullable

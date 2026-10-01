@@ -47,11 +47,22 @@ public final class NetworkClient {
     }
 
     public static void getStringAsync(String url, String userAgent, StringCallback cb) {
+        getStringAsync(url, userAgent, null, cb);
+    }
+
+    public static void getStringAsync(String url, String userAgent, java.util.Map<String, String> extraHeaders, StringCallback cb) {
         EXEC.execute(() -> {
             try {
                 Request.Builder b = new Request.Builder().url(url).get();
                 if (userAgent != null) {
                     b.header("User-Agent", userAgent);
+                }
+                if (extraHeaders != null) {
+                    for (java.util.Map.Entry<String, String> e : extraHeaders.entrySet()) {
+                        if (e.getKey() != null && e.getValue() != null) {
+                            b.header(e.getKey(), e.getValue());
+                        }
+                    }
                 }
                 try (Response resp = get().newCall(b.build()).execute()) {
                     int code = resp.code();

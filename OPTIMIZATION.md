@@ -19,11 +19,12 @@
 - [x] 继续拆分：`JsonParseUtil`、`ParseBeanResolver`、`PlayRetryHelper`
 - [x] `VideoFormatChecker`、`SubtitleCacheKey`
 - [x] `SniffWebViewConfig`（嗅探 WebView 设置外移）
-- [ ] SysWebClient / shouldInterceptRequest 整块外移
+- [x] `SniffResourceInterceptor`（广告/视频发现拦截）
 - [x] 引入 `NetworkClient` 单一 OkHttp 入口
 - [x] Source/Subscription 健康检测改用 NetworkClient
 - [x] FileUtils / UserFragment 豆瓣热搜 / SubtitleLoader 改用 NetworkClient
-- [ ] SourceViewModel / ApiConfig / PlayFragment 解析请求再迁
+- [x] PlayFragment type=1 JSON 解析改用 NetworkClient
+- [ ] SourceViewModel / ApiConfig 再迁
 - [ ] Hawk → DataStore/Room
 
 ### 工程
