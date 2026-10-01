@@ -64,4 +64,14 @@ public class HawkConfig {
      * 搜索记录
      */
     public static final String HISTORY_SEARCH = "history_search";
+    /**
+     * 视频净化档位: 0关闭 1标准 2激进（优先于旧 VIDEO_PURIFY 布尔）
+     */
+    public static final String VIDEO_PURIFY_LEVEL = "video_purify_level";
+    /** 站点健康检测缓存 JSON */
+    public static final String SOURCE_HEALTH_CACHE = "source_health_cache";
+    /** 订阅健康检测缓存时间戳 */
+    public static final String SUB_HEALTH_TS = "sub_health_ts";
+    /** 站点健康检测缓存时间戳 */
+    public static final String SOURCE_HEALTH_TS = "source_health_ts";
 }

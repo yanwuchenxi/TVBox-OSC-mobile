@@ -1,5 +1,8 @@
 package com.github.tvbox.osc.base;
 
+import com.github.tvbox.osc.BuildConfig;
+import com.github.tvbox.osc.util.LOG;
+
 import android.text.TextUtils;
 
 import androidx.multidex.MultiDexApplication;
@@ -73,6 +76,32 @@ public class App extends MultiDexApplication {
         FileUtils.cleanPlayerCache();
         initCrashConfig();
         Utils.initTheme();
+        checkPythonRuntime();
+    }
+
+    private void checkPythonRuntime() {
+        try {
+            if (!BuildConfig.HAS_PYTHON) {
+                LOG.i("Python runtime: standard variant (not bundled)");
+                return;
+            }
+            Class<?> pyClz = Class.forName("com.chaquo.python.Python");
+            boolean started = Boolean.TRUE.equals(pyClz.getMethod("isStarted").invoke(null));
+            if (!started) {
+                Object platform = Class.forName("com.chaquo.python.android.AndroidPlatform")
+                        .getConstructor(android.content.Context.class)
+                        .newInstance(this);
+                for (java.lang.reflect.Method m : pyClz.getMethods()) {
+                    if ("start".equals(m.getName()) && m.getParameterTypes().length == 1) {
+                        m.invoke(null, platform);
+                        break;
+                    }
+                }
+            }
+            LOG.i("Python runtime: ready, started=" + pyClz.getMethod("isStarted").invoke(null));
+        } catch (Throwable e) {
+            LOG.e("Python runtime init failed: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+        }
     }
 
     private void initParams() {
@@ -86,7 +115,8 @@ public class App extends MultiDexApplication {
         putDefault(HawkConfig.BACKGROUND_PLAY_TYPE,2);           //后台播放: 0 关闭,1 开启,2 画中画
         putDefault(HawkConfig.DOH_URL, 0);                   //安全DNS: 0=关闭, 1=腾讯, 2=阿里, 3=360, 4=Google, 5=AdGuard, 6=Quad9
         putDefault(HawkConfig.PLAY_SCALE, 0);                //画面缩放: 0=默认, 1=16:9, 2=4:3, 3=填充, 4=原始, 5=裁剪
-        putDefault(HawkConfig.HISTORY_NUM, 2);                //历史记录数量: 0=30, 1=50, 2=70
+        putDefault(HawkConfig.HISTORY_NUM, 2);
+        putDefault(HawkConfig.VIDEO_PURIFY_LEVEL, 1); // 标准净化                //历史记录数量: 0=30, 1=50, 2=70
         putDefaultApi();
     }
 

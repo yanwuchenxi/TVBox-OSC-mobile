@@ -51,7 +51,7 @@ public class DlnaCastController {
                 }
                 Matcher m = CONTROL_URL.matcher(desc);
                 if (!m.find()) {
-                    postErr(cb, "设备不支持 AVTransport（非标准 DLNA 播放器）");
+                    postErr(cb, "设备不支持 AVTransport，请换支持 DLNA 的电视/盒子");
                     return;
                 }
                 String controlPath = m.group(1).trim();
@@ -68,7 +68,7 @@ public class DlnaCastController {
                     setResp = httpSoap(controlUrl, "urn:schemas-upnp-org:service:AVTransport:2#SetAVTransportURI", setUri, 10000);
                 }
                 if (setResp == null) {
-                    postErr(cb, "SetAVTransportURI 失败");
+                    postErr(cb, "推流失败：无法设置播放地址（设备拒绝或地址格式不支持）");
                     return;
                 }
                 String playBody = soapPlay();
@@ -77,7 +77,7 @@ public class DlnaCastController {
                     playResp = httpSoap(controlUrl, "urn:schemas-upnp-org:service:AVTransport:2#Play", playBody, 8000);
                 }
                 if (playResp == null) {
-                    postErr(cb, "已设置地址但 Play 失败，请在电视上确认");
+                    postErr(cb, "已推送地址，但设备未开始播放，请在电视端确认");
                     return;
                 }
                 postOk(cb, "已推送到：" + deviceName);

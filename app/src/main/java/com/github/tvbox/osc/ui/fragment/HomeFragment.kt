@@ -166,7 +166,7 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                 }
                 try {
                     com.github.tvbox.osc.util.SourceHealthChecker.checkAndSort { ok, fail ->
-                        if (fail > 0) {
+                        if (ok >= 0 && fail > 0) {
                             com.blankj.utilcode.util.ToastUtils.showShort("站点检测：可用 $ok / 异常 $fail")
                         }
                     }

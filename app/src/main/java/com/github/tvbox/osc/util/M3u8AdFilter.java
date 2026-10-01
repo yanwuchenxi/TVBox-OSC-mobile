@@ -43,6 +43,15 @@ public class M3u8AdFilter {
     }
 
     public static String filter(String tsUrlPre, String m3u8content) {
+        return filter(tsUrlPre, m3u8content, 1);
+    }
+
+    /**
+     * @param level 0关闭 1标准 2激进
+     */
+    public static String filter(String tsUrlPre, String m3u8content, int level) {
+        if (level <= 0) return null;
+
         if (TextUtils.isEmpty(m3u8content) || !m3u8content.trim().startsWith("#EXTM3U")) {
             return null;
         }
@@ -116,7 +125,7 @@ public class M3u8AdFilter {
             boolean isAd = false;
 
             // 1) 少数前缀
-            if (maxTimes > 0 && preUrlMap.size() > 1 && preUrlMap.size() <= 8) {
+            if (maxTimes > 0 && preUrlMap.size() > 1 && preUrlMap.size() <= (level >= 2 ? 12 : 8)) {
                 if (!lines[i].startsWith(maxTimesPreUrl) && !abs.startsWith(maxTimesPreUrl)) {
                     // 相对路径需规范化后再比
                     String pre = abs.substring(0, abs.lastIndexOf('/') + 1);
@@ -131,14 +140,17 @@ public class M3u8AdFilter {
 
             // 2) 过短切片 < 1.2s 且不是全部都很短
             Float dur = durationMap.get(i);
-            if (!isAd && dur != null && dur > 0 && dur < 1.2f) {
-                // 若大部分切片都短，则不判广告
-                int shortCnt = 0;
-                for (Float d : durationMap.values()) {
-                    if (d != null && d < 1.2f) shortCnt++;
-                }
-                if (shortCnt < durationMap.size() * 0.5f) {
-                    isAd = true;
+            if (!isAd && dur != null && dur > 0) {
+                float thr = level >= 2 ? 2.0f : 1.2f;
+                if (dur < thr) {
+                    int shortCnt = 0;
+                    for (Float d : durationMap.values()) {
+                        if (d != null && d < thr) shortCnt++;
+                    }
+                    float ratio = level >= 2 ? 0.65f : 0.5f;
+                    if (shortCnt < durationMap.size() * ratio) {
+                        isAd = true;
+                    }
                 }
             }
 

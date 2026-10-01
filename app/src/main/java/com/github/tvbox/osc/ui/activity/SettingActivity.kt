@@ -413,13 +413,21 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             dialog.show()
         })
 
-        mBinding.switchVideoPurify.setChecked(Hawk.get(HawkConfig.VIDEO_PURIFY, true))
-        // toggle purify video -------------------------------------
+        // 视频净化: 0关闭 1标准 2激进
+        var purifyLevel = Hawk.get(HawkConfig.VIDEO_PURIFY_LEVEL, if (Hawk.get(HawkConfig.VIDEO_PURIFY, true)) 1 else 0)
+        mBinding.switchVideoPurify.setChecked(purifyLevel > 0)
         mBinding.llVideoPurify.setOnClickListener { v: View? ->
             FastClickCheckUtil.check(v)
-            val newConfig = !Hawk.get(HawkConfig.VIDEO_PURIFY, true)
-            mBinding.switchVideoPurify.setChecked(newConfig)
-            Hawk.put(HawkConfig.VIDEO_PURIFY, newConfig)
+            purifyLevel = (purifyLevel + 1) % 3
+            Hawk.put(HawkConfig.VIDEO_PURIFY_LEVEL, purifyLevel)
+            Hawk.put(HawkConfig.VIDEO_PURIFY, purifyLevel > 0)
+            mBinding.switchVideoPurify.setChecked(purifyLevel > 0)
+            val name = when (purifyLevel) {
+                0 -> "关闭"
+                2 -> "激进"
+                else -> "标准"
+            }
+            ToastUtils.showShort("视频净化：$name")
         }
         mBinding.switchIjkCachePlay.setChecked(Hawk.get(HawkConfig.IJK_CACHE_PLAY, false))
         mBinding.llIjkCachePlay.setOnClickListener { v: View? ->

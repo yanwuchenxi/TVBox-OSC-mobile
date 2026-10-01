@@ -644,7 +644,7 @@ public class PlayFragment extends BaseLazyFragment {
 
             if ("视频播放出错".equals(msg)){
                 if (!retriedSwitchPlayer){
-                    ToastUtils.showShort("播放出错,正在尝试切换播放器");
+                    ToastUtils.showShort("播放出错，正在自动切换播放器重试");
                     retriedSwitchPlayer = true;
                     mController.mPlayerBtn.performClick();
                 }else {
@@ -682,7 +682,8 @@ public class PlayFragment extends BaseLazyFragment {
 
     private String removeMinorityUrl(String tsUrlPre, String m3u8content) {
         try {
-            return M3u8AdFilter.filter(tsUrlPre, m3u8content);
+            int level = Hawk.get(HawkConfig.VIDEO_PURIFY_LEVEL, Hawk.get(HawkConfig.VIDEO_PURIFY, true) ? 1 : 0);
+            return M3u8AdFilter.filter(tsUrlPre, m3u8content, level);
         } catch (Throwable e) {
             e.printStackTrace();
             return null;
@@ -691,7 +692,8 @@ public class PlayFragment extends BaseLazyFragment {
 
     void playUrl(String url, HashMap<String, String> headers) {
         mCurrentUrl = url;
-        if (!Hawk.get(HawkConfig.VIDEO_PURIFY, true)) {
+        int purifyLevel = Hawk.get(HawkConfig.VIDEO_PURIFY_LEVEL, Hawk.get(HawkConfig.VIDEO_PURIFY, true) ? 1 : 0);
+        if (purifyLevel <= 0) {
             startPlayUrl(url, headers);
             return;
         }
@@ -757,7 +759,7 @@ public class PlayFragment extends BaseLazyFragment {
                                 startPlayUrl(url, headers);
                             else {
                                 startPlayUrl("http://127.0.0.1:" + RemoteServer.serverPort + "/m3u8", headers);
-                                //Toast.makeText(getContext(), "已移除视频广告", Toast.LENGTH_SHORT).show();
+                                ToastUtils.showShort("已过滤广告切片");
                             }
                             return;
                         }
@@ -776,7 +778,7 @@ public class PlayFragment extends BaseLazyFragment {
                                             startPlayUrl(finalforwardurl, headers);
                                         else {
                                             startPlayUrl("http://127.0.0.1:" + RemoteServer.serverPort + "/m3u8", headers);
-                                            //Toast.makeText(getContext(), "已移除视频广告", Toast.LENGTH_SHORT).show();
+                                            ToastUtils.showShort("已过滤广告切片");
                                         }
                                     }
 

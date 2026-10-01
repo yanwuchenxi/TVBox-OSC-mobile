@@ -23,6 +23,14 @@ public class SourceHealthChecker {
     }
 
     public static void checkAndSort(Callback cb) {
+        checkAndSort(false, cb);
+    }
+
+    public static void checkAndSort(boolean force, Callback cb) {
+        if (!force && HealthCheckCache.isFresh(HawkConfig.SOURCE_HEALTH_TS)) {
+            if (cb != null) cb.onFinished(-1, -1); // -1 表示跳过（使用缓存）
+            return;
+        }
         List<SourceBean> sites = new ArrayList<>(ApiConfig.get().getSourceBeanList());
         if (sites.isEmpty()) {
             if (cb != null) cb.onFinished(0, 0);
@@ -94,6 +102,7 @@ public class SourceHealthChecker {
                                 ordered.addAll(failList);
                                 try {
                                     ApiConfig.get().reorderSourceBeans(ordered);
+                                    HealthCheckCache.touch(HawkConfig.SOURCE_HEALTH_TS);
                                 } catch (Throwable ignored) {
                                 }
                                 main.post(() -> {

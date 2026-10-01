@@ -60,7 +60,11 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         mBinding.btnEmptyPaste.setOnClickListener { pasteAddFromClipboard() }
         mBinding.btnEmptyAdd.setOnClickListener { showAddSubscriptionDialog() }
         // 进入页面自动检测一次有效性（后台）
-        mBinding.rv.post { checkAllSubscriptions(false) }
+        mBinding.rv.post {
+            if (!com.github.tvbox.osc.util.HealthCheckCache.isFresh(HawkConfig.SUB_HEALTH_TS)) {
+                checkAllSubscriptions(false)
+            }
+        }
 
         mBinding.ivUseTip.setOnClickListener {
             XPopup.Builder(this)
@@ -487,6 +491,8 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
     override fun finish() {
         //切换了订阅地址
         if (!TextUtils.isEmpty(mSelectedUrl) && mBeforeUrl != mSelectedUrl) {
+            com.github.tvbox.osc.util.HealthCheckCache.invalidate(HawkConfig.SOURCE_HEALTH_TS)
+            com.github.tvbox.osc.util.HealthCheckCache.invalidate(HawkConfig.SUB_HEALTH_TS)
             ToastUtils.showShort("正在应用新订阅…")
             val intent = Intent(this, MainActivity::class.java)
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)

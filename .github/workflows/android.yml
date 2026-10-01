@@ -40,15 +40,15 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Gradle assembleStandardDebug
+      - name: Gradle assembleStandardDebug + Release
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          ./gradlew assembleStandardDebug --stacktrace --no-daemon
+          ./gradlew assembleStandardDebug assembleStandardRelease --stacktrace --no-daemon
 
       - name: Upload standard APK
         uses: actions/upload-artifact@v4
         with:
-          name: MBox-standard-debug
+          name: MBox-standard-apk
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: warn
 
@@ -90,15 +90,15 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Gradle assemblePython64Debug with Chaquopy
+      - name: Gradle assemblePython64Debug + Release with Chaquopy
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          ./gradlew assemblePython64Debug -PenablePython=true --stacktrace --no-daemon
+          ./gradlew assemblePython64Debug assemblePython64Release -PenablePython=true --stacktrace --no-daemon
 
       - name: Upload Python APK
         uses: actions/upload-artifact@v4
         with:
-          name: MBox-python64-debug
+          name: MBox-python64-apk
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: warn
         if: success()
