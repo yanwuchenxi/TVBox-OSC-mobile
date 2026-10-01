@@ -71,6 +71,9 @@ import com.github.tvbox.osc.ui.dialog.SelectDialog;
 import com.github.tvbox.osc.ui.dialog.SubtitleDialog;
 import com.github.tvbox.osc.util.AdBlocker;
 import com.github.tvbox.osc.player.M3u8PurifyHelper;
+import com.github.tvbox.osc.player.PlayRetryHelper;
+import com.github.tvbox.osc.player.parse.JsonParseUtil;
+import com.github.tvbox.osc.player.parse.ParseBeanResolver;
 import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.LOG;
@@ -128,6 +131,7 @@ public class PlayFragment extends BaseLazyFragment {
     private VodController mController;
     private SourceViewModel sourceViewModel;
     private Handler mHandler;
+    private final PlayRetryHelper retryHelper = new PlayRetryHelper();
 
     private final long videoDuration = -1;
     /**
@@ -253,7 +257,7 @@ public class PlayFragment extends BaseLazyFragment {
 
             @Override
             public void changeParse(ParseBean pb) {
-                autoRetryCount = 0;
+                retryHelper.resetRetryCount();
                 doParse(pb);
             }
 
@@ -265,7 +269,7 @@ public class PlayFragment extends BaseLazyFragment {
 
             @Override
             public void replay(boolean replay) {
-                autoRetryCount = 0;
+                retryHelper.resetRetryCount();
                 play(replay);
             }
 
@@ -803,7 +807,7 @@ public class PlayFragment extends BaseLazyFragment {
 
     void startPlayUrl(String url, HashMap<String, String> headers) {
         LOG.i("playUrl:" + url);
-        if (autoRetryCount > 0 && url.contains(".m3u8")) {
+        if (retryHelper.getAutoRetryCount() > 0 && url.contains(".m3u8")) {
             url = "http://home.jundie.top:666/unBom.php?m3u8=" + url;//尝试去bom头再次播放
         }
         String finalUrl = url;
@@ -1128,33 +1132,22 @@ public class PlayFragment extends BaseLazyFragment {
         play(false);
     }
 
-    private int autoRetryCount = 0;
-
     boolean autoRetry() {
-        if (loadFoundVideoUrls != null && loadFoundVideoUrls.size() > 0) {
+        if (retryHelper.getLoadFoundVideoUrls() != null && !retryHelper.getLoadFoundVideoUrls().isEmpty()) {
             autoRetryFromLoadFoundVideoUrls();
             return true;
         }
-        if (autoRetryCount < 1) {
-            autoRetryCount++;
-            play(false);
-            return true;
-        } else {
-            autoRetryCount = 0;
-            return false;
-        }
+        return retryHelper.tryConsumeRetry(() -> play(false));
     }
 
     void autoRetryFromLoadFoundVideoUrls() {
-        String videoUrl = loadFoundVideoUrls.poll();
-        HashMap<String, String> header = loadFoundVideoUrlsHeader.get(videoUrl);
+        String videoUrl = retryHelper.pollFoundUrl();
+        HashMap<String, String> header = retryHelper.headerFor(videoUrl);
         playUrl(videoUrl, header);
     }
 
     void initParseLoadFound() {
-        loadFoundCount.set(0);
-        loadFoundVideoUrls = new LinkedList<String>();
-        loadFoundVideoUrlsHeader = new HashMap<String, HashMap<String, String>>();
+        retryHelper.resetFound();
     }
 
     public void play(boolean reset) {
@@ -1222,61 +1215,13 @@ public class PlayFragment extends BaseLazyFragment {
     private void initParse(String flag, boolean useParse, String playUrl, final String url) {
         parseFlag = flag;
         webUrl = url;
-        ParseBean parseBean = null;
         mController.showParse(useParse);
-        if (useParse) {
-            parseBean = ApiConfig.get().getDefaultParse();
-        } else {
-            if (playUrl.startsWith("json:")) {
-                parseBean = new ParseBean();
-                parseBean.setType(1);
-                parseBean.setUrl(playUrl.substring(5));
-            } else if (playUrl.startsWith("parse:")) {
-                String parseRedirect = playUrl.substring(6);
-                for (ParseBean pb : ApiConfig.get().getParseBeanList()) {
-                    if (pb.getName().equals(parseRedirect)) {
-                        parseBean = pb;
-                        break;
-                    }
-                }
-            }
-            if (parseBean == null) {
-                parseBean = new ParseBean();
-                parseBean.setType(0);
-                parseBean.setUrl(playUrl);
-            }
-        }
+        ParseBean parseBean = ParseBeanResolver.resolve(useParse, playUrl);
         doParse(parseBean);
     }
 
     JSONObject jsonParse(String input, String json) throws JSONException {
-        JSONObject jsonPlayData = new JSONObject(json);
-        //小窗版解析方法改到这了  之前那个位置data解析无效
-        String url;
-        if (jsonPlayData.has("data")) {
-            url = jsonPlayData.getJSONObject("data").getString("url");
-        } else {
-            url = jsonPlayData.getString("url");
-        }
-        if (url.startsWith("//")) {
-            url = "http:" + url;
-        }
-        if (!url.startsWith("http")) {
-            return null;
-        }
-        JSONObject headers = new JSONObject();
-        String ua = jsonPlayData.optString("user-agent", "");
-        if (ua.trim().length() > 0) {
-            headers.put("User-Agent", " " + ua);
-        }
-        String referer = jsonPlayData.optString("referer", "");
-        if (referer.trim().length() > 0) {
-            headers.put("Referer", " " + referer);
-        }
-        JSONObject taskResult = new JSONObject();
-        taskResult.put("header", headers);
-        taskResult.put("url", url);
-        return taskResult;
+        return JsonParseUtil.jsonParse(input, json);
     }
 
     void stopParse() {
@@ -1516,9 +1461,7 @@ public class PlayFragment extends BaseLazyFragment {
 
     private WebView mSysWebView;
     private final Map<String, Boolean> loadedUrls = new HashMap<>();
-    private LinkedList<String> loadFoundVideoUrls = new LinkedList<>();
-    private HashMap<String, HashMap<String, String>> loadFoundVideoUrlsHeader = new HashMap<>();
-    private final AtomicInteger loadFoundCount = new AtomicInteger(0);
+    // 嗅探候选地址由 PlayRetryHelper 管理
 
     void loadWebView(String url) {
         if (mSysWebView == null) {
@@ -1747,11 +1690,10 @@ public class PlayFragment extends BaseLazyFragment {
 
             if (!ad) {
                 if (checkVideoFormat(url)) {
-                    loadFoundVideoUrls.add(url);
-                    loadFoundVideoUrlsHeader.put(url, headers);
+                    retryHelper.offerFound(url, headers);
                     LOG.i("loadFoundVideoUrl:" + url);
-                    if (loadFoundCount.incrementAndGet() == 1) {
-                        url = loadFoundVideoUrls.poll();
+                    if (retryHelper.getLoadFoundCount().incrementAndGet() == 1) {
+                        url = retryHelper.pollFoundUrl();
                         mHandler.removeMessages(100);
                         String cookie = CookieManager.getInstance().getCookie(url);
                         if (!TextUtils.isEmpty(cookie))
@@ -1762,7 +1704,7 @@ public class PlayFragment extends BaseLazyFragment {
                 }
             }
 
-            return ad || loadFoundCount.get() > 0 ?
+            return ad || retryHelper.getLoadFoundCount().get() > 0 ?
                     AdBlocker.createEmptyResource() :
                     null;
         }

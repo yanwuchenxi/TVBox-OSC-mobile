@@ -15,9 +15,11 @@
 ## 后续 backlog（未在本轮完整执行）
 
 ### 架构
-- [x] 拆分起步：`SpiderFactory`（ApiConfig）、`M3u8PurifyHelper`（PlayFragment）
-- [ ] 继续拆分 PlayFragment 播放/解析/字幕
-- [ ] 统一协程 + 单一 OkHttp，逐步移除 OkGo
+- [x] 拆分起步：`SpiderFactory`、`M3u8PurifyHelper`
+- [x] 继续拆分：`JsonParseUtil`、`ParseBeanResolver`、`PlayRetryHelper`
+- [ ] 继续拆分字幕/WebView 嗅探
+- [x] 引入 `NetworkClient` 单一 OkHttp 入口
+- [ ] 统一协程 + 逐步移除 OkGo 调用点
 - [ ] Hawk → DataStore/Room
 
 ### 工程
@@ -27,6 +29,6 @@
 
 ### 功能
 - [x] 站点检测增强内容特征判断（非仅 HTTP 状态）
-- [x] DLNA Stop
-- [ ] DLNA Seek 与品牌 protocolInfo 表
+- [x] DLNA Stop / Seek
+- [ ] 品牌 protocolInfo 表
 - [ ] 模块化 feature 拆分与 UI 测试

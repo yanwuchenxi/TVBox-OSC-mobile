@@ -200,6 +200,40 @@ public class DlnaCastController {
                 .replace("\"", "&quot;").replace("'", "&apos;");
     }
 
+    public static void seek(String deviceDescriptionUrl, long positionMs, Callback cb) {
+        EXEC.execute(() -> {
+            try {
+                String desc = httpGet(deviceDescriptionUrl, 8000);
+                if (TextUtils.isEmpty(desc)) {
+                    postErr(cb, "无法读取设备描述");
+                    return;
+                }
+                Matcher m = CONTROL_URL.matcher(desc);
+                if (!m.find()) {
+                    postErr(cb, "设备无 AVTransport");
+                    return;
+                }
+                String controlUrl = resolveUrl(deviceDescriptionUrl, m.group(1).trim());
+                long h = positionMs / 3600000;
+                long rem = positionMs % 3600000;
+                long min = rem / 60000;
+                long sec = (rem % 60000) / 1000;
+                String target = String.format(Locale.US, "%d:%02d:%02d", h, min, sec);
+                String body = "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+                        + "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+                        + "s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+                        + "<s:Body><u:Seek xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\">"
+                        + "<InstanceID>0</InstanceID><Unit>REL_TIME</Unit><Target>" + target + "</Target>"
+                        + "</u:Seek></s:Body></s:Envelope>";
+                String resp = httpSoap(controlUrl, "urn:schemas-upnp-org:service:AVTransport:1#Seek", body, 8000);
+                if (resp == null) postErr(cb, "Seek 失败");
+                else postOk(cb, "已跳转到 " + target);
+            } catch (Throwable e) {
+                postErr(cb, e.getMessage() != null ? e.getMessage() : "Seek 失败");
+            }
+        });
+    }
+
     public static void stop(String deviceDescriptionUrl, Callback cb) {
         EXEC.execute(() -> {
             try {
