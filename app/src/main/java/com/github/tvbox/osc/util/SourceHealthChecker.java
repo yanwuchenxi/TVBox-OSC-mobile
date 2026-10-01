@@ -73,12 +73,13 @@ public class SourceHealthChecker {
                         @Override
                         public void onSuccess(Response<String> response) {
                             String body = response.body();
-                            boolean looksValid = body != null && body.length() > 10 && (
-                                    body.contains("sites") || body.contains("class")
-                                    || body.contains("list") || body.contains("\"type\")
-                                    || body.trim().startsWith("{") || body.trim().startsWith("[")
-                                    || body.contains("vod") || body.contains("data")
-                            );
+                            boolean looksValid = false;
+                            if (body != null && body.length() > 10) {
+                                looksValid = body.contains("sites") || body.contains("class")
+                                        || body.contains("list") || body.contains("type")
+                                        || body.trim().startsWith("{") || body.trim().startsWith("[")
+                                        || body.contains("vod") || body.contains("data");
+                            }
                             if (looksValid || (response.code() >= 200 && response.code() < 400 && body != null && body.length() > 0)) {
                                 ok.incrementAndGet();
                                 synchronized (okList) {
