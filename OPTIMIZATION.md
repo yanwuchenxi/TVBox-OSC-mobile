@@ -17,9 +17,11 @@
 ### 架构
 - [x] 拆分起步：`SpiderFactory`、`M3u8PurifyHelper`
 - [x] 继续拆分：`JsonParseUtil`、`ParseBeanResolver`、`PlayRetryHelper`
-- [ ] 继续拆分字幕/WebView 嗅探
+- [x] `VideoFormatChecker`、`SubtitleCacheKey`（嗅探格式/字幕 key）
+- [ ] WebView 嗅探客户端整块外移
 - [x] 引入 `NetworkClient` 单一 OkHttp 入口
-- [ ] 统一协程 + 逐步移除 OkGo 调用点
+- [x] Source/Subscription 健康检测改用 NetworkClient
+- [ ] 统一协程 + 更多页面移除 OkGo
 - [ ] Hawk → DataStore/Room
 
 ### 工程

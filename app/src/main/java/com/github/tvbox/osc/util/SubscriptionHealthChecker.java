@@ -4,15 +4,12 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.github.tvbox.osc.bean.Subscription;
-import com.lzy.okgo.OkGo;
-import com.lzy.okgo.callback.AbsCallback;
-import com.lzy.okgo.model.Response;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 对订阅地址做轻量可达性检测（GET，超时较短）。
+ * 对订阅地址做轻量可达性检测。网络走 NetworkClient。
  */
 public class SubscriptionHealthChecker {
 
@@ -64,44 +61,36 @@ public class SubscriptionHealthChecker {
                 continue;
             }
 
-            OkGo.<String>get(url)
-                    .tag("sub_health_" + index)
-                    .headers("User-Agent", "TVBoxMobile")
-                    .execute(new AbsCallback<String>() {
-                        @Override
-                        public void onSuccess(Response<String> response) {
-                            String body = response.body();
-                            if (body != null && body.length() > 20 && (body.contains("{") || body.contains("urls") || body.contains("sites"))) {
-                                item.setHealthStatus(Subscription.STATUS_OK);
-                                item.setHealthMsg("有效");
-                                ok.incrementAndGet();
-                            } else if (response.code() >= 200 && response.code() < 400) {
-                                item.setHealthStatus(Subscription.STATUS_OK);
-                                item.setHealthMsg("可访问");
-                                ok.incrementAndGet();
-                            } else {
-                                item.setHealthStatus(Subscription.STATUS_FAIL);
-                                item.setHealthMsg("内容异常");
-                                fail.incrementAndGet();
-                            }
-                            doneOne(main, callback, item, index, left, ok, fail);
-                        }
+            NetworkClient.getStringAsync(url, "TVBoxMobile", new NetworkClient.StringCallback() {
+                @Override
+                public void onSuccess(int code, String body) {
+                    if (body != null && body.length() > 20
+                            && (body.contains("{") || body.contains("urls") || body.contains("sites"))) {
+                        item.setHealthStatus(Subscription.STATUS_OK);
+                        item.setHealthMsg("有效");
+                        ok.incrementAndGet();
+                    } else if (code >= 200 && code < 400) {
+                        item.setHealthStatus(Subscription.STATUS_OK);
+                        item.setHealthMsg("可访问");
+                        ok.incrementAndGet();
+                    } else {
+                        item.setHealthStatus(Subscription.STATUS_FAIL);
+                        item.setHealthMsg("内容异常");
+                        fail.incrementAndGet();
+                    }
+                    doneOne(main, callback, item, index, left, ok, fail);
+                }
 
-                        @Override
-                        public void onError(Response<String> response) {
-                            item.setHealthStatus(Subscription.STATUS_FAIL);
-                            String msg = response.getException() != null ? response.getException().getMessage() : "请求失败";
-                            if (msg != null && msg.length() > 24) msg = msg.substring(0, 24) + "…";
-                            item.setHealthMsg(msg == null ? "失败" : msg);
-                            fail.incrementAndGet();
-                            doneOne(main, callback, item, index, left, ok, fail);
-                        }
-
-                        @Override
-                        public String convertResponse(okhttp3.Response response) throws Throwable {
-                            return response.body() != null ? response.body().string() : "";
-                        }
-                    });
+                @Override
+                public void onError(Throwable e) {
+                    item.setHealthStatus(Subscription.STATUS_FAIL);
+                    String msg = e != null ? e.getMessage() : "请求失败";
+                    if (msg != null && msg.length() > 24) msg = msg.substring(0, 24) + "…";
+                    item.setHealthMsg(msg == null ? "失败" : msg);
+                    fail.incrementAndGet();
+                    doneOne(main, callback, item, index, left, ok, fail);
+                }
+            });
         }
     }
 
@@ -116,6 +105,6 @@ public class SubscriptionHealthChecker {
     }
 
     public static void cancel() {
-        OkGo.getInstance().cancelTag("sub_health");
+        // NetworkClient 使用短生命周期请求，暂无全局 tag 取消
     }
 }

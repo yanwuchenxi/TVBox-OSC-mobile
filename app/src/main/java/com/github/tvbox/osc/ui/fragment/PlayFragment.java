@@ -74,6 +74,8 @@ import com.github.tvbox.osc.player.M3u8PurifyHelper;
 import com.github.tvbox.osc.player.PlayRetryHelper;
 import com.github.tvbox.osc.player.parse.JsonParseUtil;
 import com.github.tvbox.osc.player.parse.ParseBeanResolver;
+import com.github.tvbox.osc.player.parse.VideoFormatChecker;
+import com.github.tvbox.osc.player.SubtitleCacheKey;
 import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.LOG;
@@ -1162,7 +1164,7 @@ public class PlayFragment extends BaseLazyFragment {
         stopParse();
         initParseLoadFound();
         if (mVideoView != null) mVideoView.release();
-        String subtitleCacheKey = mVodInfo.sourceKey + "-" + mVodInfo.id + "-" + mVodInfo.playFlag + "-" + mVodInfo.playIndex + "-" + vs.name + "-subt";
+        String subtitleCacheKey = SubtitleCacheKey.of(mVodInfo, vs.name);
         String progressKey = mVodInfo.sourceKey + mVodInfo.id + mVodInfo.playFlag + mVodInfo.playIndex + vs.name;
         //重新播放清除现有进度
         if (reset) {
@@ -1513,20 +1515,7 @@ public class PlayFragment extends BaseLazyFragment {
     }
 
     boolean checkVideoFormat(String url) {
-        try {
-            if (url.contains("url=http") || url.contains(".html")) {
-                return false;
-            }
-            if (sourceBean.getType() == 3) {
-                Spider sp = ApiConfig.get().getCSP(sourceBean);
-                if (sp != null && sp.manualVideoCheck()) {
-                    return sp.isVideoFormat(url);
-                }
-            }
-            return VideoParseRuler.checkIsVideoForParse(webUrl, url);
-        } catch (Exception e) {
-            return false;
-        }
+        return VideoFormatChecker.isVideo(sourceBean, webUrl, url);
     }
 
     class MyWebView extends WebView {

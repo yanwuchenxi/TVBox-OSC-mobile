@@ -5,9 +5,6 @@ import android.os.Looper;
 
 import com.github.tvbox.osc.api.ApiConfig;
 import com.github.tvbox.osc.bean.SourceBean;
-import com.lzy.okgo.OkGo;
-import com.lzy.okgo.callback.AbsCallback;
-import com.lzy.okgo.model.Response;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 配置加载后对站点 API 做轻量可达性抽检，并按结果重排 source 列表。
+ * 网络走 NetworkClient，不再依赖 OkGo。
  */
 public class SourceHealthChecker {
 
@@ -28,7 +26,7 @@ public class SourceHealthChecker {
 
     public static void checkAndSort(boolean force, Callback cb) {
         if (!force && HealthCheckCache.isFresh(HawkConfig.SOURCE_HEALTH_TS)) {
-            if (cb != null) cb.onFinished(-1, -1); // -1 表示跳过（使用缓存）
+            if (cb != null) cb.onFinished(-1, -1);
             return;
         }
         List<SourceBean> sites = new ArrayList<>(ApiConfig.get().getSourceBeanList());
@@ -48,7 +46,6 @@ public class SourceHealthChecker {
                 toCheck.add(s);
             }
         }
-        // 最多检测前 20 个，避免过多请求
         if (toCheck.size() > 20) {
             toCheck = toCheck.subList(0, 20);
         }
@@ -66,66 +63,56 @@ public class SourceHealthChecker {
 
         for (SourceBean site : toCheck) {
             final SourceBean s = site;
-            OkGo.<String>get(s.getApi())
-                    .tag("source_health")
-                    .headers("User-Agent", "TVBoxMobile")
-                    .execute(new AbsCallback<String>() {
-                        @Override
-                        public void onSuccess(Response<String> response) {
-                            String body = response.body();
-                            boolean looksValid = false;
-                            if (body != null && body.length() > 10) {
-                                looksValid = body.contains("sites") || body.contains("class")
-                                        || body.contains("list") || body.contains("type")
-                                        || body.trim().startsWith("{") || body.trim().startsWith("[")
-                                        || body.contains("vod") || body.contains("data");
-                            }
-                            if (looksValid || (response.code() >= 200 && response.code() < 400 && body != null && body.length() > 0)) {
-                                ok.incrementAndGet();
-                                synchronized (okList) {
-                                    okList.add(s);
-                                }
-                            } else {
-                                fail.incrementAndGet();
-                                synchronized (failList) {
-                                    failList.add(s);
-                                }
-                            }
-                            done();
+            NetworkClient.getStringAsync(s.getApi(), "TVBoxMobile", new NetworkClient.StringCallback() {
+                @Override
+                public void onSuccess(int code, String body) {
+                    boolean looksValid = false;
+                    if (body != null && body.length() > 10) {
+                        looksValid = body.contains("sites") || body.contains("class")
+                                || body.contains("list") || body.contains("type")
+                                || body.trim().startsWith("{") || body.trim().startsWith("[")
+                                || body.contains("vod") || body.contains("data");
+                    }
+                    if (looksValid || (code >= 200 && code < 400 && body != null && body.length() > 0)) {
+                        ok.incrementAndGet();
+                        synchronized (okList) {
+                            okList.add(s);
                         }
+                    } else {
+                        fail.incrementAndGet();
+                        synchronized (failList) {
+                            failList.add(s);
+                        }
+                    }
+                    done();
+                }
 
-                        @Override
-                        public void onError(Response<String> response) {
-                            fail.incrementAndGet();
-                            synchronized (failList) {
-                                failList.add(s);
-                            }
-                            done();
-                        }
+                @Override
+                public void onError(Throwable e) {
+                    fail.incrementAndGet();
+                    synchronized (failList) {
+                        failList.add(s);
+                    }
+                    done();
+                }
 
-                        @Override
-                        public String convertResponse(okhttp3.Response response) throws Throwable {
-                            return response.body() != null ? response.body().string() : "";
+                private void done() {
+                    if (left.decrementAndGet() == 0) {
+                        List<SourceBean> ordered = new ArrayList<>();
+                        ordered.addAll(okList);
+                        ordered.addAll(other);
+                        ordered.addAll(failList);
+                        try {
+                            ApiConfig.get().reorderSourceBeans(ordered);
+                            HealthCheckCache.touch(HawkConfig.SOURCE_HEALTH_TS);
+                        } catch (Throwable ignored) {
                         }
-
-                        private void done() {
-                            if (left.decrementAndGet() == 0) {
-                                // 重排：有效在前
-                                List<SourceBean> ordered = new ArrayList<>();
-                                ordered.addAll(okList);
-                                ordered.addAll(other);
-                                ordered.addAll(failList);
-                                try {
-                                    ApiConfig.get().reorderSourceBeans(ordered);
-                                    HealthCheckCache.touch(HawkConfig.SOURCE_HEALTH_TS);
-                                } catch (Throwable ignored) {
-                                }
-                                main.post(() -> {
-                                    if (cb != null) cb.onFinished(ok.get(), fail.get());
-                                });
-                            }
-                        }
-                    });
+                        main.post(() -> {
+                            if (cb != null) cb.onFinished(ok.get(), fail.get());
+                        });
+                    }
+                }
+            });
         }
     }
 }
