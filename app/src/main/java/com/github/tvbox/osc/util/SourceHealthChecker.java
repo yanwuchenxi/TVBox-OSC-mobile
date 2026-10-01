@@ -72,9 +72,23 @@ public class SourceHealthChecker {
                     .execute(new AbsCallback<String>() {
                         @Override
                         public void onSuccess(Response<String> response) {
-                            ok.incrementAndGet();
-                            synchronized (okList) {
-                                okList.add(s);
+                            String body = response.body();
+                            boolean looksValid = body != null && body.length() > 10 && (
+                                    body.contains("sites") || body.contains("class")
+                                    || body.contains("list") || body.contains(""type"")
+                                    || body.trim().startsWith("{") || body.trim().startsWith("[")
+                                    || body.contains("vod") || body.contains("data")
+                            );
+                            if (looksValid || (response.code() >= 200 && response.code() < 400 && body != null && body.length() > 0)) {
+                                ok.incrementAndGet();
+                                synchronized (okList) {
+                                    okList.add(s);
+                                }
+                            } else {
+                                fail.incrementAndGet();
+                                synchronized (failList) {
+                                    failList.add(s);
+                                }
                             }
                             done();
                         }

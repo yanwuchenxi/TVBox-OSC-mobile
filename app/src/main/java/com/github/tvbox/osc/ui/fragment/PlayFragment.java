@@ -70,7 +70,7 @@ import com.github.tvbox.osc.ui.dialog.SearchSubtitleDialog;
 import com.github.tvbox.osc.ui.dialog.SelectDialog;
 import com.github.tvbox.osc.ui.dialog.SubtitleDialog;
 import com.github.tvbox.osc.util.AdBlocker;
-import com.github.tvbox.osc.util.M3u8AdFilter;
+import com.github.tvbox.osc.player.M3u8PurifyHelper;
 import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.LOG;
@@ -681,19 +681,12 @@ public class PlayFragment extends BaseLazyFragment {
     }
 
     private String removeMinorityUrl(String tsUrlPre, String m3u8content) {
-        try {
-            int level = Hawk.get(HawkConfig.VIDEO_PURIFY_LEVEL, Hawk.get(HawkConfig.VIDEO_PURIFY, true) ? 1 : 0);
-            return M3u8AdFilter.filter(tsUrlPre, m3u8content, level);
-        } catch (Throwable e) {
-            e.printStackTrace();
-            return null;
-        }
+        return M3u8PurifyHelper.filter(tsUrlPre, m3u8content);
     }
 
     void playUrl(String url, HashMap<String, String> headers) {
         mCurrentUrl = url;
-        int purifyLevel = Hawk.get(HawkConfig.VIDEO_PURIFY_LEVEL, Hawk.get(HawkConfig.VIDEO_PURIFY, true) ? 1 : 0);
-        if (purifyLevel <= 0) {
+        if (!M3u8PurifyHelper.isEnabled()) {
             startPlayUrl(url, headers);
             return;
         }

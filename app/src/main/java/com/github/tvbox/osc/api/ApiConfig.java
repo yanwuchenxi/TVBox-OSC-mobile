@@ -65,26 +65,17 @@ public class ApiConfig {
 
     private SourceBean emptyHome = new SourceBean();
 
-    private JarLoader jarLoader = new JarLoader();
-    private JsLoader jsLoader = new JsLoader();
-    private com.github.catvod.crawler.python.IPyLoader pyLoader = createPyLoader();
-
-    private static com.github.catvod.crawler.python.IPyLoader createPyLoader() {
-        try {
-            if (com.github.tvbox.osc.BuildConfig.HAS_PYTHON) {
-                Class<?> clz = Class.forName("com.github.catvod.crawler.pyLoader");
-                return (com.github.catvod.crawler.python.IPyLoader) clz.getDeclaredConstructor().newInstance();
-            }
-        } catch (Throwable ignored) {
-        }
-        return new com.github.catvod.crawler.python.PyLoaderStub();
-    }
+    private final SpiderFactory spiderFactory = new SpiderFactory();
+    private JarLoader jarLoader;
+    private JsLoader jsLoader;
 
     private String userAgent = "okhttp/3.15";
 
     private String requestAccept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9";
 
     private ApiConfig() {
+        jarLoader = spiderFactory.getJarLoader();
+        jsLoader = spiderFactory.getJsLoader();
         sourceBeanList = new LinkedHashMap<>();
         liveChannelGroupList = new ArrayList<>();
         parseBeanList = new ArrayList<>();
@@ -664,18 +655,11 @@ public class ApiConfig {
     }
 
     public Spider getCSP(SourceBean sourceBean) {
-        if (sourceBean == null || sourceBean.getApi() == null) {
-            return new com.github.catvod.crawler.SpiderNull();
-        }
-        String api = sourceBean.getApi();
-        boolean js = api.endsWith(".js") || api.contains(".js?");
-        boolean py = api.endsWith(".py") || api.contains(".py?") || api.contains("python");
-        if (py) {
-            // 走 IPyLoader；默认 PyLoaderStub。启用 :pyramid + Chaquopy 后可替换为真实现
-            return pyLoader.getSpider(sourceBean.getKey(), sourceBean.getApi(), sourceBean.getExt());
-        }
-        if (js) return jsLoader.getSpider(sourceBean.getKey(), sourceBean.getApi(), sourceBean.getExt(), sourceBean.getJar());
-        return jarLoader.getSpider(sourceBean.getKey(), sourceBean.getApi(), sourceBean.getExt(), sourceBean.getJar());
+        return spiderFactory.getCSP(sourceBean);
+    }
+
+    public com.github.catvod.crawler.python.IPyLoader getPyLoader() {
+        return spiderFactory.getPyLoader();
     }
 
     public Object[] proxyLocal(Map param) {

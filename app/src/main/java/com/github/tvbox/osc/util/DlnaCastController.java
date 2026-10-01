@@ -200,6 +200,37 @@ public class DlnaCastController {
                 .replace("\"", "&quot;").replace("'", "&apos;");
     }
 
+    public static void stop(String deviceDescriptionUrl, Callback cb) {
+        EXEC.execute(() -> {
+            try {
+                String desc = httpGet(deviceDescriptionUrl, 8000);
+                if (TextUtils.isEmpty(desc)) {
+                    postErr(cb, "无法读取设备描述");
+                    return;
+                }
+                Matcher m = CONTROL_URL.matcher(desc);
+                if (!m.find()) {
+                    postErr(cb, "设备无 AVTransport");
+                    return;
+                }
+                String controlUrl = resolveUrl(deviceDescriptionUrl, m.group(1).trim());
+                String body = "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+                        + "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+                        + "s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+                        + "<s:Body><u:Stop xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\">"
+                        + "<InstanceID>0</InstanceID></u:Stop></s:Body></s:Envelope>";
+                String resp = httpSoap(controlUrl, "urn:schemas-upnp-org:service:AVTransport:1#Stop", body, 8000);
+                if (resp == null) {
+                    postErr(cb, "停止播放失败");
+                } else {
+                    postOk(cb, "已停止电视播放");
+                }
+            } catch (Throwable e) {
+                postErr(cb, e.getMessage() != null ? e.getMessage() : "停止失败");
+            }
+        });
+    }
+
     private static void postOk(Callback cb, String msg) {
         MAIN.post(() -> {
             if (cb != null) cb.onSuccess(msg);
