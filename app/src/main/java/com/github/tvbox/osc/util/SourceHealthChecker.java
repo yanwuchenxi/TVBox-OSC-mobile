@@ -75,7 +75,7 @@ public class SourceHealthChecker {
                             String body = response.body();
                             boolean looksValid = body != null && body.length() > 10 && (
                                     body.contains("sites") || body.contains("class")
-                                    || body.contains("list") || body.contains(""type"")
+                                    || body.contains("list") || body.contains("\"type\")
                                     || body.trim().startsWith("{") || body.trim().startsWith("[")
                                     || body.contains("vod") || body.contains("data")
                             );
