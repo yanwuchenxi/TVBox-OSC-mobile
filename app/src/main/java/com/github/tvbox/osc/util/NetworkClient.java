@@ -69,12 +69,64 @@ public final class NetworkClient {
     }
 
     public static String getStringSync(String url, String userAgent) throws IOException {
+        return getStringSync(url, userAgent, null);
+    }
+
+    public static String getStringSync(String url, String userAgent, java.util.Map<String, String> extraHeaders) throws IOException {
         Request.Builder b = new Request.Builder().url(url).get();
         if (userAgent != null) {
             b.header("User-Agent", userAgent);
         }
+        if (extraHeaders != null) {
+            for (java.util.Map.Entry<String, String> e : extraHeaders.entrySet()) {
+                if (e.getKey() != null && e.getValue() != null) {
+                    b.header(e.getKey(), e.getValue());
+                }
+            }
+        }
         try (Response resp = get().newCall(b.build()).execute()) {
             return resp.body() != null ? resp.body().string() : "";
+        }
+    }
+
+    public static byte[] getBytesSync(String url, java.util.Map<String, String> headers) throws IOException {
+        Request.Builder b = new Request.Builder().url(url).get();
+        if (headers != null) {
+            for (java.util.Map.Entry<String, String> e : headers.entrySet()) {
+                if (e.getKey() != null && e.getValue() != null) {
+                    b.header(e.getKey(), e.getValue());
+                }
+            }
+        }
+        try (Response resp = get().newCall(b.build()).execute()) {
+            return resp.body() != null ? resp.body().bytes() : new byte[0];
+        }
+    }
+
+    public static class HttpResult {
+        public final int code;
+        public final byte[] body;
+        public final String contentDisposition;
+
+        public HttpResult(int code, byte[] body, String contentDisposition) {
+            this.code = code;
+            this.body = body != null ? body : new byte[0];
+            this.contentDisposition = contentDisposition;
+        }
+    }
+
+    public static HttpResult getResultSync(String url, java.util.Map<String, String> headers) throws IOException {
+        Request.Builder b = new Request.Builder().url(url).get();
+        if (headers != null) {
+            for (java.util.Map.Entry<String, String> e : headers.entrySet()) {
+                if (e.getKey() != null && e.getValue() != null) {
+                    b.header(e.getKey(), e.getValue());
+                }
+            }
+        }
+        try (Response resp = get().newCall(b.build()).execute()) {
+            byte[] body = resp.body() != null ? resp.body().bytes() : new byte[0];
+            return new HttpResult(resp.code(), body, resp.header("content-disposition", ""));
         }
     }
 }

@@ -167,11 +167,12 @@ public class SubtitleLoader {
             referer = "https://secure.assrt.net/";
         }
         String ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.54 Safari/537.36";
-        Response response = OkGo.<String>get(remoteSubtitlePath)
-                .headers("Referer", referer)
-                .headers("User-Agent", ua)
-                .execute();
-        byte[] bytes = response.body().bytes();
+        java.util.Map<String, String> hs = new java.util.HashMap<>();
+        hs.put("Referer", referer);
+        hs.put("User-Agent", ua);
+        com.github.tvbox.osc.util.NetworkClient.HttpResult result =
+                com.github.tvbox.osc.util.NetworkClient.getResultSync(remoteSubtitlePath, hs);
+        byte[] bytes = result.body;
         UniversalDetector detector = new UniversalDetector(null);
         detector.handleData(bytes, 0, bytes.length);
         detector.dataEnd();
@@ -179,7 +180,7 @@ public class SubtitleLoader {
         String content = new String(bytes, encoding);
         InputStream is = new ByteArrayInputStream(content.getBytes());
         String filename = "";
-        String contentDispostion = response.header("content-disposition", "");
+        String contentDispostion = result.contentDisposition != null ? result.contentDisposition : "";
         String[] cd = contentDispostion.split(";");
         if (cd.length > 1) {
             String filenameInfo = cd[1];

@@ -17,11 +17,13 @@
 ### 架构
 - [x] 拆分起步：`SpiderFactory`、`M3u8PurifyHelper`
 - [x] 继续拆分：`JsonParseUtil`、`ParseBeanResolver`、`PlayRetryHelper`
-- [x] `VideoFormatChecker`、`SubtitleCacheKey`（嗅探格式/字幕 key）
-- [ ] WebView 嗅探客户端整块外移
+- [x] `VideoFormatChecker`、`SubtitleCacheKey`
+- [x] `SniffWebViewConfig`（嗅探 WebView 设置外移）
+- [ ] SysWebClient / shouldInterceptRequest 整块外移
 - [x] 引入 `NetworkClient` 单一 OkHttp 入口
 - [x] Source/Subscription 健康检测改用 NetworkClient
-- [ ] 统一协程 + 更多页面移除 OkGo
+- [x] FileUtils / UserFragment 豆瓣热搜 / SubtitleLoader 改用 NetworkClient
+- [ ] SourceViewModel / ApiConfig / PlayFragment 解析请求再迁
 - [ ] Hawk → DataStore/Room
 
 ### 工程

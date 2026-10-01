@@ -117,21 +117,8 @@ public class FileUtils {
 
     public static String get(String str, Map<String, String> headerMap) {
         try {
-            HttpHeaders h = new HttpHeaders();
-            Response response = null;
-            if (headerMap != null) {
-                for (String key : headerMap.keySet()) {
-                    h.put(key, headerMap.get(key));
-                }
-                response = OkGo.<String>get(str).headers(h).execute();
-            } else {
-                response =OkGo.<String>get(str).headers("User-Agent", str.startsWith("https://gitcode.net/") ? UA.random() : "okhttp/3.15").execute();
-            }
-            if (response.isSuccessful() && response.body() != null){
-                return new String(response.body().bytes(), "UTF-8");
-            } else {
-                return "";
-            }
+            String ua = str.startsWith("https://gitcode.net/") ? UA.random() : "okhttp/3.15";
+            return NetworkClient.getStringSync(str, ua, headerMap);
         } catch (IOException e) {
             return "";
         }
