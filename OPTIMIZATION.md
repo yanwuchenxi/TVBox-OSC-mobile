@@ -2,6 +2,8 @@
 
 ## 已落地（本轮）
 
+- [x] 修复 SelectDialog TvRecyclerView `Invalid target position` 崩溃（safeSelect + try/catch）
+
 - [x] 订阅/站点健康检测 **6 小时缓存**，手动检测可强制刷新
 - [x] 切换订阅时失效缓存
 - [x] 视频净化 **关闭 / 标准 / 激进** 三档

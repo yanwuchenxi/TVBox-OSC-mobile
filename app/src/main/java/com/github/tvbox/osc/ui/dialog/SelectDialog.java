@@ -51,15 +51,39 @@ public class SelectDialog<T> extends BaseDialog {
 
     public void setAdapter(SelectDialogAdapter.SelectDialogInterface<T> sourceBeanSelectDialogInterface, DiffUtil.ItemCallback<T> sourceBeanItemCallback, List<T> data, int select) {
         SelectDialogAdapter<T> adapter = new SelectDialogAdapter(sourceBeanSelectDialogInterface, sourceBeanItemCallback);
-        adapter.setData(data, select);
+        final int itemCount = data == null ? 0 : data.size();
+        // 防止 Invalid target position：select 可能为 -1 或超出列表范围
+        final int safeSelect;
+        if (itemCount <= 0) {
+            safeSelect = 0;
+        } else if (select < 0) {
+            safeSelect = 0;
+        } else if (select >= itemCount) {
+            safeSelect = itemCount - 1;
+        } else {
+            safeSelect = select;
+        }
+        adapter.setData(data, safeSelect);
         TvRecyclerView tvRecyclerView = ((TvRecyclerView) findViewById(R.id.list));
         tvRecyclerView.setAdapter(adapter);
-        tvRecyclerView.setSelectedPosition(select);
+        if (itemCount <= 0) {
+            return;
+        }
+        tvRecyclerView.setSelectedPosition(safeSelect);
         tvRecyclerView.post(new Runnable() {
             @Override
             public void run() {
-                tvRecyclerView.smoothScrollToPosition(select);
-                tvRecyclerView.setSelectionWithSmooth(select);
+                try {
+                    int count = tvRecyclerView.getAdapter() != null
+                            ? tvRecyclerView.getAdapter().getItemCount() : 0;
+                    if (count <= 0 || safeSelect < 0 || safeSelect >= count) {
+                        return;
+                    }
+                    tvRecyclerView.smoothScrollToPosition(safeSelect);
+                    tvRecyclerView.setSelectionWithSmooth(safeSelect);
+                } catch (IllegalArgumentException ignored) {
+                    // TvRecyclerView 在数据尚未布局完成时可能抛 Invalid target position
+                }
             }
         });
     }
