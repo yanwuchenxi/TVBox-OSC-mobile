@@ -107,6 +107,7 @@ public class App extends MultiDexApplication {
     private void initParams() {
         // Hawk
         Hawk.init(this).build();
+        com.github.tvbox.osc.util.ConfigStore.init(this);
         Hawk.put(HawkConfig.DEBUG_OPEN, false);
 
         putDefault(HawkConfig.HOME_REC, 0);                  //推荐: 0=豆瓣热播, 1=站点推荐
@@ -122,17 +123,19 @@ public class App extends MultiDexApplication {
 
     private void putDefaultApi() {
         String[] apis = getResources().getStringArray(R.array.api);
-        if(!Hawk.contains(HawkConfig.API_URL) && !Hawk.contains(HawkConfig.SUBSCRIPTIONS) && !TextUtils.isEmpty(apis[0])){
+        if(!Hawk.contains(HawkConfig.API_URL) && !com.github.tvbox.osc.util.ConfigStore.hasApiUrl() && !Hawk.contains(HawkConfig.SUBSCRIPTIONS) && !TextUtils.isEmpty(apis[0])){
             List<Subscription> subscriptions = new ArrayList<>();
             for (int i = 0; i < apis.length; i++) {
                 if (i==0){
                     subscriptions.add(new Subscription("订阅: 1", apis[0]).setChecked(true));
                     Hawk.put(HawkConfig.API_URL,apis[0]);
+                    com.github.tvbox.osc.util.ConfigStore.setApiUrl(apis[0]);
                 }else {
                     subscriptions.add(new Subscription("订阅: "+(i+1), apis[i]));
                 }
             }
             Hawk.put(HawkConfig.SUBSCRIPTIONS,subscriptions);
+            com.github.tvbox.osc.util.ConfigStore.setSubscriptions(subscriptions);
         }
     }
 

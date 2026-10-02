@@ -15,7 +15,7 @@ public class SearchHelper {
     public static HashMap<String, String> getSourcesForSearch() {
         HashMap<String, String> mCheckSources;
         try {
-            String api = Hawk.get(HawkConfig.API_URL, "");
+            String api = ConfigStore.getApiUrl();
             if(api.isEmpty())return null;
             HashMap<String, HashMap<String, String>> mCheckSourcesForApi = Hawk.get(HawkConfig.SOURCES_FOR_SEARCH, new HashMap<>());
             mCheckSources = mCheckSourcesForApi.get(api);
@@ -27,7 +27,7 @@ public class SearchHelper {
     }
 
     public static void putCheckedSources(HashMap<String, String> mCheckSources,boolean isAll) {
-        String api = Hawk.get(HawkConfig.API_URL, "");
+        String api = ConfigStore.getApiUrl();
         if (api.isEmpty()) {
             return;
         }

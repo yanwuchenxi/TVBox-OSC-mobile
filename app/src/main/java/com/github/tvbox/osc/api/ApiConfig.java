@@ -128,7 +128,8 @@ public class ApiConfig {
     }
 
     public void loadConfig(boolean useCache, LoadConfigCallback callback, Activity activity) {
-        String apiUrl = Hawk.get(HawkConfig.API_URL, "");
+        String apiUrl = com.github.tvbox.osc.util.ConfigStore.getApiUrl();
+        if (apiUrl == null) apiUrl = "";
         if (apiUrl.isEmpty()) {
             callback.error("-1");
             return;

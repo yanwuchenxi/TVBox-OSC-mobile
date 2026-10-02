@@ -31,14 +31,16 @@ import com.lzy.okgo.OkGo
 import com.lzy.okgo.callback.AbsCallback
 import com.lzy.okgo.model.Response
 import com.obsez.android.lib.filechooser.ChooserDialog
+import com.github.tvbox.osc.util.ConfigStore
 import com.orhanobut.hawk.Hawk
 import java.util.function.Consumer
 
 class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
 
-    private var mBeforeUrl = Hawk.get(HawkConfig.API_URL, "")
+    private var mBeforeUrl = ConfigStore.getApiUrl() ?: ""
     private var mSelectedUrl = ""
-    private var mSubscriptions: MutableList<Subscription> = Hawk.get(HawkConfig.SUBSCRIPTIONS, ArrayList())
+    private var mSubscriptions: MutableList<Subscription> =
+        (ConfigStore.getSubscriptions() ?: ArrayList()).toMutableList()
     private var mSubscriptionAdapter = SubscriptionAdapter()
     private val mSources: MutableList<Source> = ArrayList()
 
@@ -101,8 +103,8 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                 }
             }
             // 立即持久化，避免仅 onPause 时才写入导致异常退出丢失
-            Hawk.put(HawkConfig.API_URL, mSelectedUrl)
-            Hawk.put(HawkConfig.SUBSCRIPTIONS, mSubscriptions)
+            ConfigStore.setApiUrl(mSelectedUrl)
+            ConfigStore.setSubscriptions(mSubscriptions)
             mSubscriptionAdapter.notifyDataSetChanged()
             ToastUtils.showShort("已切换：" + mSubscriptions[position].name)
         }
@@ -360,12 +362,12 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                 for (s in mSubscriptions) s.setChecked(false)
                 sub.setChecked(true)
                 mSelectedUrl = sub.url
-                Hawk.put(HawkConfig.API_URL, mSelectedUrl)
+                ConfigStore.setApiUrl(mSelectedUrl)
             }
             mSubscriptions.add(sub)
             added++
         }
-        Hawk.put(HawkConfig.SUBSCRIPTIONS, mSubscriptions)
+        ConfigStore.setSubscriptions(mSubscriptions)
         mSubscriptionAdapter.setNewData(mSubscriptions)
         refreshEmptyState()
         ToastUtils.showShort("已导入 " + added + " 条线路")
@@ -398,7 +400,7 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                 })
                 mSubscriptionAdapter.setNewData(mSubscriptions)
                 refreshEmptyState()
-                Hawk.put(HawkConfig.SUBSCRIPTIONS, mSubscriptions)
+                ConfigStore.setSubscriptions(mSubscriptions)
                 if (showToast) {
                     ToastUtils.showShort("检测完成：有效 " + ok + " / 失效 " + fail + "（已按有效性排序）")
                 }
@@ -484,8 +486,8 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
     override fun onPause() {
         super.onPause()
         // 更新缓存
-        Hawk.put(HawkConfig.API_URL, mSelectedUrl)
-        Hawk.put<List<Subscription>?>(HawkConfig.SUBSCRIPTIONS, mSubscriptions)
+        ConfigStore.setApiUrl(mSelectedUrl)
+        ConfigStore.setSubscriptions(mSubscriptions)
     }
 
     override fun finish() {
