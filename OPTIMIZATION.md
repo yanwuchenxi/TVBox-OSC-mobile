@@ -34,8 +34,9 @@
 ### 工程
 - [ ] AGP 8 + Kotlin 1.9 + OkHttp 4（未做，避免大版本一次翻车）
 - [x] targetSdk/compileSdk **34**，媒体权限 / FGS mediaPlayback / POST_NOTIFICATIONS，CI SDK 34
-- [ ] 运行时动态申请 POST_NOTIFICATIONS / READ_MEDIA_* 完整流程
-- [ ] 去除仍依赖的 tv-recyclerview（需改 Live/Detail/Controller 布局）
+- [x] `PermissionHelper`：启动时申请 POST_NOTIFICATIONS / READ_MEDIA_*（XXPermissions）
+- [x] SelectDialog 改标准 RecyclerView（去掉 TvRecyclerView）
+- [ ] Live/Detail/Backup 等其余 TvRecyclerView 继续替换
 
 ### 功能
 - [x] 站点检测增强内容特征判断（非仅 HTTP 状态）
