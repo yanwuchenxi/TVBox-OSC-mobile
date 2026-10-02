@@ -1,12 +1,12 @@
 package com.github.tvbox.osc.util;
 
+import android.Manifest;
 import android.app.Activity;
 import android.os.Build;
 
 import androidx.fragment.app.FragmentActivity;
 
 import com.hjq.permissions.OnPermissionCallback;
-import com.hjq.permissions.Permission;
 import com.hjq.permissions.XXPermissions;
 import com.orhanobut.hawk.Hawk;
 
@@ -24,26 +24,25 @@ public final class PermissionHelper {
 
     public static void requestStartupPermissions(FragmentActivity activity) {
         if (activity == null || activity.isFinishing()) return;
-        // 避免每次进首页都弹；用户拒绝后仍可在设置里手动开
         if (Hawk.get(KEY_ASKED, false)) return;
 
         List<String> need = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= 33) {
-            if (!XXPermissions.isGranted(activity, Permission.POST_NOTIFICATIONS)) {
-                need.add(Permission.POST_NOTIFICATIONS);
+            if (!XXPermissions.isGranted(activity, Manifest.permission.POST_NOTIFICATIONS)) {
+                need.add(Manifest.permission.POST_NOTIFICATIONS);
             }
-            if (!XXPermissions.isGranted(activity, Permission.READ_MEDIA_VIDEO)) {
-                need.add(Permission.READ_MEDIA_VIDEO);
+            if (!XXPermissions.isGranted(activity, Manifest.permission.READ_MEDIA_VIDEO)) {
+                need.add(Manifest.permission.READ_MEDIA_VIDEO);
             }
-            if (!XXPermissions.isGranted(activity, Permission.READ_MEDIA_IMAGES)) {
-                need.add(Permission.READ_MEDIA_IMAGES);
+            if (!XXPermissions.isGranted(activity, Manifest.permission.READ_MEDIA_IMAGES)) {
+                need.add(Manifest.permission.READ_MEDIA_IMAGES);
             }
-            if (!XXPermissions.isGranted(activity, Permission.READ_MEDIA_AUDIO)) {
-                need.add(Permission.READ_MEDIA_AUDIO);
+            if (!XXPermissions.isGranted(activity, Manifest.permission.READ_MEDIA_AUDIO)) {
+                need.add(Manifest.permission.READ_MEDIA_AUDIO);
             }
         } else if (Build.VERSION.SDK_INT >= 23) {
-            if (!XXPermissions.isGranted(activity, Permission.READ_EXTERNAL_STORAGE)) {
-                need.add(Permission.READ_EXTERNAL_STORAGE);
+            if (!XXPermissions.isGranted(activity, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                need.add(Manifest.permission.READ_EXTERNAL_STORAGE);
             }
         }
         if (need.isEmpty()) {
@@ -72,11 +71,11 @@ public final class PermissionHelper {
         }
         List<String> need = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= 33) {
-            if (!XXPermissions.isGranted(activity, Permission.READ_MEDIA_VIDEO)) {
-                need.add(Permission.READ_MEDIA_VIDEO);
+            if (!XXPermissions.isGranted(activity, Manifest.permission.READ_MEDIA_VIDEO)) {
+                need.add(Manifest.permission.READ_MEDIA_VIDEO);
             }
-        } else if (!XXPermissions.isGranted(activity, Permission.READ_EXTERNAL_STORAGE)) {
-            need.add(Permission.READ_EXTERNAL_STORAGE);
+        } else if (!XXPermissions.isGranted(activity, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            need.add(Manifest.permission.READ_EXTERNAL_STORAGE);
         }
         if (need.isEmpty()) {
             if (onDone != null) onDone.run();
