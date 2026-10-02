@@ -27,8 +27,7 @@
 - [x] FileUtils / UserFragment 豆瓣热搜 / SubtitleLoader 改用 NetworkClient
 - [x] PlayFragment type=1 JSON 解析改用 NetworkClient
 - [x] ApiConfig loadConfig/loadJar 改用 NetworkClient（已无 OkGo）
-- [x] SourceViewModel getSort 改用 httpGet/NetworkClient
-- [ ] SourceViewModel list/detail/search/play 再迁
+- [x] SourceViewModel **全部** HTTP（sort/list/detail/search/play）改用 httpGet/NetworkClient，已无 OkGo
 - [ ] Hawk → DataStore/Room
 
 ### 工程
