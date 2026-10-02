@@ -18,8 +18,8 @@ import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.bean.MovieSort;
 import com.github.tvbox.osc.ui.adapter.GridFilterKVAdapter;
 import com.lihang.ShadowLayout;
-import com.owen.tvrecyclerview.widget.TvRecyclerView;
-import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -66,7 +66,7 @@ public class GridFilterDialog extends BaseDialog {
             View line = LayoutInflater.from(getContext()).inflate(R.layout.item_grid_filter, null);
             RecyclerView gridView = line.findViewById(R.id.mFilterKv);
             gridView.setHasFixedSize(true);
-            gridView.setLayoutManager(new V7LinearLayoutManager(getContext(), 0, false));
+            gridView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
             GridFilterKVAdapter filterKVAdapter = new GridFilterKVAdapter();
             gridView.setAdapter(filterKVAdapter);
             String key = filter.key;

@@ -26,29 +26,23 @@
             android:textSize="16sp"
              />
 
-        <com.owen.tvrecyclerview.widget.TvRecyclerView
+        <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/mGridViewWord"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginVertical="16dp"
             android:clipChildren="false"
             android:clipToPadding="false"
-            app:tv_horizontalSpacingWithMargins="5dp"
-            app:tv_selectedItemIsCentered="true"
-            app:tv_verticalSpacingWithMargins="5dp"
             tools:listitem="@layout/item_search_word_hot"
             tools:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             tools:orientation="horizontal"/>
 
-        <com.owen.tvrecyclerview.widget.TvRecyclerView
+        <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/mGridView"
             android:layout_width="match_parent"
             android:layout_height="400dp"
             android:clipChildren="false"
             android:clipToPadding="false"
-            app:tv_horizontalSpacingWithMargins="5dp"
-            app:tv_selectedItemIsCentered="true"
-            app:tv_verticalSpacingWithMargins="5dp"
             tools:listitem="@layout/item_quick_search_lite"/>
 
     </LinearLayout>

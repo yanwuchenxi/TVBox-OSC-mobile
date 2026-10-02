@@ -42,8 +42,8 @@ import com.github.tvbox.osc.util.HawkConfig
 import com.github.tvbox.osc.viewmodel.SourceViewModel
 import com.lxj.xpopup.XPopup
 import com.orhanobut.hawk.Hawk
-import com.owen.tvrecyclerview.widget.TvRecyclerView
-import com.owen.tvrecyclerview.widget.V7GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.GridLayoutManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -330,8 +330,6 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
         val sites = ApiConfig.get().sourceBeanList
         if (sites.size > 0) {
             val dialog = SelectDialog<SourceBean>(requireActivity())
-            val tvRecyclerView = dialog.findViewById<TvRecyclerView>(R.id.list)
-            tvRecyclerView.setLayoutManager(V7GridLayoutManager(dialog.context, 2))
             dialog.setTip("请选择首页数据源")
             dialog.setAdapter(object : SelectDialogInterface<SourceBean?> {
                 override fun click(value: SourceBean?, pos: Int) {
@@ -351,6 +349,9 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                     return oldItem.key.contentEquals(newItem.key)
                 }
             }, sites, sites.indexOf(ApiConfig.get().homeSourceBean))
+            // setAdapter 会设线性布局，站点切换改为双列网格
+            dialog.findViewById<RecyclerView>(R.id.list)?.layoutManager =
+                GridLayoutManager(dialog.context, 2)
             dialog.show()
         } else {
             ToastUtils.showLong("暂无可用数据源")

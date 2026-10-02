@@ -82,7 +82,7 @@ import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.AbsCallback;
 import com.lzy.okgo.model.Response;
 import com.orhanobut.hawk.Hawk;
-import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -169,7 +169,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
         mBinding.previewPlayerPlace.setVisibility(showPreview ? View.VISIBLE : View.GONE);
 
         mBinding.mGridView.setHasFixedSize(true);
-        mBinding.mGridView.setLayoutManager(new V7LinearLayoutManager(this.mContext, 0, false));
+        mBinding.mGridView.setLayoutManager(new LinearLayoutManager(this.mContext, LinearLayoutManager.HORIZONTAL, false));
         mBinding.mGridView.addItemDecoration(new LinearSpacingItemDecoration(20, false));
 
         seriesAdapter = new SeriesAdapter(false);
