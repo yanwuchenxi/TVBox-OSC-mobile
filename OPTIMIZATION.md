@@ -26,7 +26,9 @@
 - [x] Source/Subscription 健康检测改用 NetworkClient
 - [x] FileUtils / UserFragment 豆瓣热搜 / SubtitleLoader 改用 NetworkClient
 - [x] PlayFragment type=1 JSON 解析改用 NetworkClient
-- [ ] SourceViewModel / ApiConfig 再迁
+- [x] ApiConfig loadConfig/loadJar 改用 NetworkClient（已无 OkGo）
+- [x] SourceViewModel getSort 改用 httpGet/NetworkClient
+- [ ] SourceViewModel list/detail/search/play 再迁
 - [ ] Hawk → DataStore/Room
 
 ### 工程

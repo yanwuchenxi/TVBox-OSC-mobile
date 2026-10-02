@@ -25,9 +25,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.lzy.okgo.OkGo;
-import com.lzy.okgo.callback.AbsCallback;
-import com.lzy.okgo.model.Response;
 import com.orhanobut.hawk.Hawk;
 
 import org.apache.commons.lang3.StringUtils;
@@ -165,23 +162,33 @@ public class ApiConfig {
             configUrl = apiUrl;
         }
         String configKey = TempKey;
-        OkGo.<String>get(configUrl)
-                .headers("User-Agent", userAgent)
-                .headers("Accept", requestAccept)
-                .execute(new AbsCallback<String>() {
+        java.util.Map<String, String> hdrs = new java.util.HashMap<>();
+        hdrs.put("User-Agent", userAgent);
+        hdrs.put("Accept", requestAccept);
+        final String finalApiUrl = apiUrl;
+        final File finalCache = cache;
+        com.github.tvbox.osc.util.NetworkClient.getStringAsync(configUrl, null, hdrs,
+                new com.github.tvbox.osc.util.NetworkClient.StringCallback() {
                     @Override
-                    public void onSuccess(Response<String> response) {
+                    public void onSuccess(int code, String body) {
                         try {
-                            String json = response.body();
-                            parseJson(apiUrl, json);
+                            String result = body != null ? body : "";
+                            if (configKey != null) {
+                                result = FindResult(result, configKey);
+                            }
+                            if (finalApiUrl.startsWith("clan")) {
+                                result = clanContentFix(clanToAddress(finalApiUrl), result);
+                            }
+                            result = fixContentPath(finalApiUrl, result);
+                            parseJson(finalApiUrl, result);
                             try {
-                                File cacheDir = cache.getParentFile();
+                                File cacheDir = finalCache.getParentFile();
                                 if (!cacheDir.exists())
                                     cacheDir.mkdirs();
-                                if (cache.exists())
-                                    cache.delete();
-                                FileOutputStream fos = new FileOutputStream(cache);
-                                fos.write(json.getBytes("UTF-8"));
+                                if (finalCache.exists())
+                                    finalCache.delete();
+                                FileOutputStream fos = new FileOutputStream(finalCache);
+                                fos.write(result.getBytes("UTF-8"));
                                 fos.flush();
                                 fos.close();
                             } catch (Throwable th) {
@@ -195,38 +202,20 @@ public class ApiConfig {
                     }
 
                     @Override
-                    public void onError(Response<String> response) {
-                        super.onError(response);
-                        if (cache.exists()) {
+                    public void onError(Throwable e) {
+                        if (finalCache.exists()) {
                             try {
-                                parseJson(apiUrl, cache);
+                                parseJson(finalApiUrl, finalCache);
                                 callback.success();
                                 return;
                             } catch (Throwable th) {
                                 th.printStackTrace();
                             }
                         }
-                        callback.error("拉取配置失败\n" + (response.getException() != null ? response.getException().getMessage() : ""));
-                    }
-
-                    public String convertResponse(okhttp3.Response response) throws Throwable {
-                        String result = "";
-                        if (response.body() == null) {
-                            result = "";
-                        } else {
-                            result = FindResult(response.body().string(), configKey);
-                        }
-
-                        if (apiUrl.startsWith("clan")) {
-                            result = clanContentFix(clanToAddress(apiUrl), result);
-                        }
-                        //假相對路徑
-                        result = fixContentPath(apiUrl,result);
-                        return result;
+                        callback.error("拉取配置失败\n" + (e != null && e.getMessage() != null ? e.getMessage() : ""));
                     }
                 });
     }
-
 
     public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {
         String[] urls = spider.split(";md5;");
@@ -247,50 +236,41 @@ public class ApiConfig {
 
         boolean isJarInImg = jarUrl.startsWith("img+");
         jarUrl = jarUrl.replace("img+", "");
-        OkGo.<File>get(jarUrl)
-                .headers("User-Agent", userAgent)
-                .headers("Accept", requestAccept)
-                .execute(new AbsCallback<File>() {
-
-            @Override
-            public File convertResponse(okhttp3.Response response) throws Throwable {
-                File cacheDir = cache.getParentFile();
+        final String finalJarUrl = jarUrl;
+        final File finalCache = cache;
+        final boolean finalIsJarInImg = isJarInImg;
+        new Thread(() -> {
+            try {
+                java.util.Map<String, String> hdrs = new java.util.HashMap<>();
+                hdrs.put("User-Agent", userAgent);
+                hdrs.put("Accept", requestAccept);
+                byte[] raw = com.github.tvbox.osc.util.NetworkClient.getBytesSync(finalJarUrl, hdrs);
+                File cacheDir = finalCache.getParentFile();
                 if (!cacheDir.exists())
                     cacheDir.mkdirs();
-                if (cache.exists())
-                    cache.delete();
-                FileOutputStream fos = new FileOutputStream(cache);
-                if(isJarInImg) {
-                    String respData = response.body().string();
+                if (finalCache.exists())
+                    finalCache.delete();
+                FileOutputStream fos = new FileOutputStream(finalCache);
+                if (finalIsJarInImg) {
+                    String respData = new String(raw, "UTF-8");
                     byte[] imgJar = getImgJar(respData);
                     fos.write(imgJar);
                 } else {
-                    fos.write(response.body().bytes());
+                    fos.write(raw);
                 }
                 fos.flush();
                 fos.close();
-                return cache;
+                boolean ok = finalCache.exists() && jarLoader.load(finalCache.getAbsolutePath());
+                android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
+                main.post(() -> {
+                    if (ok) callback.success();
+                    else callback.error("");
+                });
+            } catch (Throwable e) {
+                e.printStackTrace();
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.error(""));
             }
-
-            @Override
-            public void onSuccess(Response<File> response) {
-                if (response.body().exists()) {
-                    if (jarLoader.load(response.body().getAbsolutePath())) {
-                        callback.success();
-                    } else {
-                        callback.error("");
-                    }
-                } else {
-                    callback.error("");
-                }
-            }
-
-            @Override
-            public void onError(Response<File> response) {
-                super.onError(response);
-                callback.error("");
-            }
-        });
+        }).start();
     }
 
     private void parseJson(String apiUrl, File f) throws Throwable {

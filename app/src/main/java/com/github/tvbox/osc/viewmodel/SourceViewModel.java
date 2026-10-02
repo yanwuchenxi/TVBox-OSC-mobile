@@ -21,6 +21,7 @@ import com.github.tvbox.osc.event.RefreshEvent;
 import com.github.tvbox.osc.util.DefaultConfig;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.LOG;
+import com.github.tvbox.osc.util.NetworkClient;
 import com.github.tvbox.osc.util.thunder.Thunder;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -71,6 +72,26 @@ public class SourceViewModel extends ViewModel {
         quickSearchResult = new MutableLiveData<>();
         detailResult = new MutableLiveData<>();
         playResult = new MutableLiveData<>();
+    }
+
+    private interface HttpStringCb {
+        void onOk(String body);
+        void onFail(Throwable e);
+    }
+
+    /** 统一 GET（query params），替代 OkGo 散落调用 */
+    private void httpGet(String url, Map<String, String> params, HttpStringCb cb) {
+        NetworkClient.getStringAsync(url, null, null, params, new NetworkClient.StringCallback() {
+            @Override
+            public void onSuccess(int code, String body) {
+                if (cb != null) cb.onOk(body != null ? body : "");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                if (cb != null) cb.onFail(e);
+            }
+        });
     }
 
     public static final ExecutorService spThreadPool = Executors.newSingleThreadExecutor();
@@ -136,27 +157,14 @@ public class SourceViewModel extends ViewModel {
             };
             spThreadPool.execute(waitResponse);
         } else if (type == 0 || type == 1) {
-            OkGo.<String>get(sourceBean.getApi())
-                    .tag(sourceBean.getKey() + "_sort")
-                    .execute(new AbsCallback<String>() {
+            httpGet(sourceBean.getApi(), null, new HttpStringCb() {
                         @Override
-                        public String convertResponse(okhttp3.Response response) throws Throwable {
-                            if (response.body() != null) {
-                                return response.body().string();
-                            } else {
-                                throw new IllegalStateException("网络请求错误");
-                            }
-                        }
-
-                        @Override
-                        public void onSuccess(Response<String> response) {
+                        public void onOk(String body) {
                             AbsSortXml sortXml = null;
                             if (type == 0) {
-                                String xml = response.body();
-                                sortXml = sortXml(sortResult, xml);
+                                sortXml = sortXml(sortResult, body);
                             } else if (type == 1) {
-                                String json = response.body();
-                                sortXml = sortJson(sortResult, json);
+                                sortXml = sortJson(sortResult, body);
                             }
                             if (sortXml != null && Hawk.get(HawkConfig.HOME_REC, 0) == 1 && sortXml.list != null && sortXml.list.videoList != null && sortXml.list.videoList.size() > 0) {
                                 ArrayList<String> ids = new ArrayList<>();
@@ -177,28 +185,16 @@ public class SourceViewModel extends ViewModel {
                         }
 
                         @Override
-                        public void onError(Response<String> response) {
-                            super.onError(response);
+                        public void onFail(Throwable e) {
                             sortResult.postValue(null);
                         }
                     });
         }else if (type == 4) {
-            OkGo.<String>get(sourceBean.getApi())
-                .tag(sourceBean.getKey() + "_sort")
-                .params("filter", "true")
-                .execute(new AbsCallback<String>() {
+            java.util.HashMap<String, String> p4 = new java.util.HashMap<>();
+            p4.put("filter", "true");
+            httpGet(sourceBean.getApi(), p4, new HttpStringCb() {
                     @Override
-                    public String convertResponse(okhttp3.Response response) throws Throwable {
-                        if (response.body() != null) {
-                            return response.body().string();
-                        } else {
-                            throw new IllegalStateException("网络请求错误");
-                        }
-                    }
-
-                    @Override
-                    public void onSuccess(Response<String> response) {
-                        String sortJson  = response.body();
+                    public void onOk(String sortJson) {
                         if (sortJson != null) {
                             AbsSortXml sortXml = sortJson(sortResult, sortJson);
                             if (sortXml != null && Hawk.get(HawkConfig.HOME_REC, 0) == 1) {
@@ -224,8 +220,7 @@ public class SourceViewModel extends ViewModel {
                     }
 
                     @Override
-                    public void onError(Response<String> response) {
-                        super.onError(response);
+                    public void onFail(Throwable e) {
                         sortResult.postValue(null);
                     }
                 });

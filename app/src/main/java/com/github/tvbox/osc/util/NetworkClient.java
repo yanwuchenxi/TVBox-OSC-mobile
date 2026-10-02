@@ -46,6 +46,45 @@ public final class NetworkClient {
         return client;
     }
 
+
+    /** 将 query 参数拼到 URL（跳过 key 或 value 为 null 的项） */
+    public static String buildUrl(String base, java.util.Map<String, String> params) {
+        if (base == null || base.isEmpty()) return base;
+        if (params == null || params.isEmpty()) return base;
+        try {
+            okhttp3.HttpUrl hu = okhttp3.HttpUrl.parse(base);
+            if (hu == null) {
+                StringBuilder sb = new StringBuilder(base);
+                boolean first = !base.contains("?");
+                for (java.util.Map.Entry<String, String> e : params.entrySet()) {
+                    if (e.getKey() == null || e.getValue() == null) continue;
+                    sb.append(first ? "?" : "&");
+                    first = false;
+                    sb.append(java.net.URLEncoder.encode(e.getKey(), "UTF-8"));
+                    sb.append("=");
+                    sb.append(java.net.URLEncoder.encode(e.getValue(), "UTF-8"));
+                }
+                return sb.toString();
+            }
+            okhttp3.HttpUrl.Builder b = hu.newBuilder();
+            for (java.util.Map.Entry<String, String> e : params.entrySet()) {
+                if (e.getKey() == null || e.getValue() == null) continue;
+                b.addQueryParameter(e.getKey(), e.getValue());
+            }
+            return b.build().toString();
+        } catch (Throwable e) {
+            return base;
+        }
+    }
+
+    public static void getStringAsync(String url, String userAgent,
+                                      java.util.Map<String, String> extraHeaders,
+                                      java.util.Map<String, String> queryParams,
+                                      StringCallback cb) {
+        String full = buildUrl(url, queryParams);
+        getStringAsync(full, userAgent, extraHeaders, cb);
+    }
+
     public static void getStringAsync(String url, String userAgent, StringCallback cb) {
         getStringAsync(url, userAgent, null, cb);
     }
