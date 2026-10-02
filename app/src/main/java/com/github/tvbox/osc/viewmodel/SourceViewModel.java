@@ -245,7 +245,7 @@ public class SourceViewModel extends ViewModel {
             java.util.HashMap<String, String> listParams = new java.util.HashMap<>();
             listParams.put("ac", type == 0 ? "videolist" : "detail");
             listParams.put("t", sortData.id);
-            listParams.put("pg", page);
+            listParams.put("pg", String.valueOf(page));
             if (sortData.filterSelect != null) listParams.putAll(sortData.filterSelect);
             listParams.put("f", (sortData.filterSelect == null || sortData.filterSelect.size() <= 0) ? "" : new JSONObject(sortData.filterSelect).toString());
             httpGet(homeSourceBean.getApi(), listParams, new HttpStringCb() {
@@ -280,7 +280,7 @@ public class SourceViewModel extends ViewModel {
             listParams4.put("ac", "detail");
             listParams4.put("filter", "true");
             listParams4.put("t", sortData.id);
-            listParams4.put("pg", page);
+            listParams4.put("pg", String.valueOf(page));
             listParams4.put("ext", ext);
             httpGet(homeSourceBean.getApi(), listParams4, new HttpStringCb() {
                     @Override
