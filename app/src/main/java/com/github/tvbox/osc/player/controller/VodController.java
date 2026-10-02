@@ -37,8 +37,8 @@ import com.github.tvbox.osc.util.ScreenUtils;
 import com.github.tvbox.osc.util.SubtitleHelper;
 import com.github.tvbox.osc.util.Utils;
 import com.orhanobut.hawk.Hawk;
-import com.owen.tvrecyclerview.widget.TvRecyclerView;
-import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.jetbrains.annotations.NotNull;
@@ -124,7 +124,7 @@ public class VodController extends BaseController {
     LinearLayout mTopRoot1;
     View mTopRoot2;
     LinearLayout mParseRoot;
-    TvRecyclerView mGridView;
+    RecyclerView mGridView;
     TextView mPlayTitle1;
     TextView mPlayLoadNetSpeedRightTop;
     ImageView mNextBtn;
@@ -274,7 +274,7 @@ public class VodController extends BaseController {
             }
         });
 
-        mGridView.setLayoutManager(new V7LinearLayoutManager(getContext(), 0, false));
+        mGridView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         mParseAdapter = new ParseAdapter();
         mParseAdapter.setOnItemClickListener((adapter, view, position) -> {
             ParseBean parseBean = mParseAdapter.getItem(position);

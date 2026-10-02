@@ -37,7 +37,9 @@
 - [x] `PermissionHelper`：启动时申请 POST_NOTIFICATIONS / READ_MEDIA_*（XXPermissions）
 - [x] SelectDialog 改标准 RecyclerView
 - [x] Backup/QuickSearch/SearchSubtitle/SearchCheckbox/GridFilter/LiveSetting 对话框 + Detail 布局管理器改标准 RecyclerView
-- [ ] Live 页 / GridFragment / VodController / player 控制条仍用 TvRecyclerView
+- [x] Live / GridFragment / VodController / LocalVideoController / FastSearch 布局与代码改标准 RecyclerView
+- [x] LinearSpacingItemDecoration 改用 androidx GridLayoutManager
+- [ ] 可择机移除 `tv-recyclerview` Gradle 依赖
 
 ### 功能
 - [x] 站点检测增强内容特征判断（非仅 HTTP 状态）
