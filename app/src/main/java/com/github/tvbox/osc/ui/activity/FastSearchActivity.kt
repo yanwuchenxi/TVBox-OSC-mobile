@@ -233,7 +233,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     }
 
     private fun initHistorySearch() {
-        val mSearchHistory: List<String> = Hawk.get(HawkConfig.HISTORY_SEARCH, ArrayList())
+        val mSearchHistory: List<String> = ConfigStore.getStringList(HawkConfig.HISTORY_SEARCH)
         mBinding.llHistory.visibility = if (mSearchHistory.isNotEmpty()) View.VISIBLE else View.GONE
         mBinding.flHistory.adapter = object : TagAdapter<String?>(mSearchHistory) {
             override fun getView(parent: FlowLayout, position: Int, s: String?): View {
@@ -250,7 +250,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             true
         }
         findViewById<View>(R.id.iv_clear_history).setOnClickListener { view: View ->
-            Hawk.put(HawkConfig.HISTORY_SEARCH, ArrayList<Any>())
+            ConfigStore.putStringList(HawkConfig.HISTORY_SEARCH, ArrayList())
             //FlowLayout及其adapter貌似没有清空数据的api,简单粗暴重置
             view.postDelayed({ initHistorySearch() }, 300)
         }
@@ -369,7 +369,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
 
     private fun saveSearchHistory(searchWord: String?) {
         if (!searchWord.isNullOrEmpty()) {
-            val history = Hawk.get(HawkConfig.HISTORY_SEARCH, ArrayList<String?>())
+            val history = ConfigStore.getStringList(HawkConfig.HISTORY_SEARCH)
             if (!history.contains(searchWord)) {
                 history.add(0, searchWord)
             } else {
@@ -379,7 +379,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             if (history.size > 30) {
                 history.removeAt(30)
             }
-            Hawk.put(HawkConfig.HISTORY_SEARCH, history)
+            ConfigStore.putStringList(HawkConfig.HISTORY_SEARCH, history.filterNotNull())
         }
     }
 

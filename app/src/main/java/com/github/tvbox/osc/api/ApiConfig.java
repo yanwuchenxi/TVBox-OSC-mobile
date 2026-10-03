@@ -579,12 +579,12 @@ public class ApiConfig {
 
     private void putLiveHistory(String url) {
         if (!url.isEmpty()) {
-            ArrayList<String> liveHistory = Hawk.get(HawkConfig.LIVE_HISTORY, new ArrayList<String>());
+            ArrayList<String> liveHistory = ConfigStore.getStringList(HawkConfig.LIVE_HISTORY);
             if (!liveHistory.contains(url))
                 liveHistory.add(0, url);
             if (liveHistory.size() > 20)
                 liveHistory.remove(20);
-            Hawk.put(HawkConfig.LIVE_HISTORY, liveHistory);
+            ConfigStore.putStringList(HawkConfig.LIVE_HISTORY, liveHistory);
         }
     }
 

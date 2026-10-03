@@ -246,4 +246,62 @@ public final class ConfigStore {
         } catch (Throwable ignored) {
         }
     }
+
+    private static final Type STRING_LIST_TYPE = new TypeToken<ArrayList<String>>() {
+    }.getType();
+
+    public static ArrayList<String> getStringList(String key) {
+        ensure();
+        String json = sp.getString(key + "_json", null);
+        if (json != null && !json.isEmpty()) {
+            try {
+                ArrayList<String> list = GSON.fromJson(json, STRING_LIST_TYPE);
+                if (list != null) return list;
+            } catch (Throwable ignored) {
+            }
+        }
+        try {
+            ArrayList<String> hawkList = Hawk.get(key, new ArrayList<String>());
+            return hawkList != null ? hawkList : new ArrayList<>();
+        } catch (Throwable e) {
+            return new ArrayList<>();
+        }
+    }
+
+    public static void putStringList(String key, List<String> list) {
+        ensure();
+        ArrayList<String> safe = list != null ? new ArrayList<>(list) : new ArrayList<>();
+        sp.edit().putString(key + "_json", GSON.toJson(safe)).apply();
+        try {
+            Hawk.put(key, safe);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    public static <T> T getJson(String key, Type type, T def) {
+        ensure();
+        String json = sp.getString(key + "_json", null);
+        if (json != null && !json.isEmpty()) {
+            try {
+                T v = GSON.fromJson(json, type);
+                if (v != null) return v;
+            } catch (Throwable ignored) {
+            }
+        }
+        try {
+            T hawk = Hawk.get(key, def);
+            return hawk != null ? hawk : def;
+        } catch (Throwable e) {
+            return def;
+        }
+    }
+
+    public static void putJson(String key, Object value) {
+        ensure();
+        sp.edit().putString(key + "_json", GSON.toJson(value)).apply();
+        try {
+            Hawk.put(key, value);
+        } catch (Throwable ignored) {
+        }
+    }
 }

@@ -1,5 +1,8 @@
 package com.github.tvbox.osc.util;
 
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+
 import com.github.tvbox.osc.api.ApiConfig;
 import com.github.tvbox.osc.bean.SourceBean;
 import com.github.tvbox.osc.ui.activity.FastSearchActivity;
@@ -17,7 +20,8 @@ public class SearchHelper {
         try {
             String api = ConfigStore.getApiUrl();
             if(api.isEmpty())return null;
-            HashMap<String, HashMap<String, String>> mCheckSourcesForApi = Hawk.get(HawkConfig.SOURCES_FOR_SEARCH, new HashMap<>());
+            Type type = new TypeToken<HashMap<String, HashMap<String, String>>>(){}.getType();
+            HashMap<String, HashMap<String, String>> mCheckSourcesForApi = ConfigStore.getJson(HawkConfig.SOURCES_FOR_SEARCH, type, new HashMap<>());
             mCheckSources = mCheckSourcesForApi.get(api);
         } catch (Exception e) {
             return null;
@@ -31,7 +35,8 @@ public class SearchHelper {
         if (api.isEmpty()) {
             return;
         }
-        HashMap<String, HashMap<String, String>> mCheckSourcesForApi = Hawk.get(HawkConfig.SOURCES_FOR_SEARCH,null);
+        Type type = new TypeToken<HashMap<String, HashMap<String, String>>>(){}.getType();
+        HashMap<String, HashMap<String, String>> mCheckSourcesForApi = ConfigStore.getJson(HawkConfig.SOURCES_FOR_SEARCH, type, null);
 
         if(isAll){
             if (mCheckSourcesForApi == null) return;
@@ -41,7 +46,7 @@ public class SearchHelper {
             mCheckSourcesForApi.put(api, mCheckSources);
         }
         FastSearchActivity.Companion.setCheckedSourcesForSearch(mCheckSources);
-        Hawk.put(HawkConfig.SOURCES_FOR_SEARCH, mCheckSourcesForApi);
+        ConfigStore.putJson(HawkConfig.SOURCES_FOR_SEARCH, mCheckSourcesForApi);
     }
 
     public static HashMap<String, String> getSources(){
