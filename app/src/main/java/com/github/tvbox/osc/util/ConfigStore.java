@@ -247,6 +247,25 @@ public final class ConfigStore {
         }
     }
 
+    public static long getLong(String key, long def) {
+        ensure();
+        if (sp.contains(key)) return sp.getLong(key, def);
+        try {
+            return Hawk.get(key, def);
+        } catch (Throwable e) {
+            return def;
+        }
+    }
+
+    public static void putLong(String key, long value) {
+        ensure();
+        sp.edit().putLong(key, value).apply();
+        try {
+            Hawk.put(key, value);
+        } catch (Throwable ignored) {
+        }
+    }
+
     private static final Type STRING_LIST_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
 

@@ -200,12 +200,12 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         ChooserDialog(this@SubscriptionActivity, R.style.FileChooser)
             .withFilter(false, false, "txt", "json")
             .withStartFile(
-                if (TextUtils.isEmpty(Hawk.get("before_selected_path"))) "/storage/emulated/0/Download" else Hawk.get(
-                    "before_selected_path"
+                if (TextUtils.isEmpty(ConfigStore.getString("before_selected_path", ""))) "/storage/emulated/0/Download" else ConfigStore.getString(
+                    "before_selected_path", ""
                 )
             )
             .withChosenListener(ChooserDialog.Result { _, pathFile ->
-                Hawk.put("before_selected_path", pathFile.parent)
+                ConfigStore.putString("before_selected_path", pathFile.parent ?: "")
                 val clanPath =
                     pathFile.absolutePath.replace("/storage/emulated/0", "clan://localhost")
                 for (item in mSubscriptions) {
@@ -407,7 +407,7 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                 for (s in mSubscriptions) {
                     if (s.isChecked && s.healthStatus == Subscription.STATUS_FAIL) {
                         ToastUtils.showLong("当前订阅可能已失效：" + s.name + "（" + s.healthMsg + "）")
-                        Hawk.put("last_sub_fail_msg", s.name + ": " + s.healthMsg)
+                        ConfigStore.putString("last_sub_fail_msg", s.name + ": " + s.healthMsg)
                         break
                     }
                 }

@@ -21,21 +21,21 @@ public class SubtitleHelper {
 
     public static int getTextSize(Activity activity) {
         int autoSize = getSubtitleTextAutoSize(activity);
-        int subtitleConfigSize = Hawk.get(HawkConfig.SUBTITLE_TEXT_SIZE, autoSize);
+        int subtitleConfigSize = ConfigStore.getInt(HawkConfig.SUBTITLE_TEXT_SIZE, autoSize);
         return subtitleConfigSize;
     }
 
     public static void setTextSize(int size) {
-        Hawk.put(HawkConfig.SUBTITLE_TEXT_SIZE, size);
+        ConfigStore.putInt(HawkConfig.SUBTITLE_TEXT_SIZE, size);
     }
 
     public static int getTimeDelay() {
-        int subtitleConfigTimeDelay = Hawk.get(HawkConfig.SUBTITLE_TIME_DELAY, 0);
+        int subtitleConfigTimeDelay = ConfigStore.getInt(HawkConfig.SUBTITLE_TIME_DELAY, 0);
         return subtitleConfigTimeDelay;
     }
 
     public static void setTimeDelay(int delay) {
-        Hawk.put(HawkConfig.SUBTITLE_TIME_DELAY, delay);
+        ConfigStore.putInt(HawkConfig.SUBTITLE_TIME_DELAY, delay);
     }
 
 }

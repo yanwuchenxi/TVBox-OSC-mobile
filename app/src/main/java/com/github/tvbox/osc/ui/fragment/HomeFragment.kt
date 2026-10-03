@@ -404,10 +404,10 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
     override fun onResume() {
         super.onResume()
         try {
-            val fail = com.orhanobut.hawk.Hawk.get("last_sub_fail_msg", "")
+            val fail = ConfigStore.getString("last_sub_fail_msg", "")
             if (!fail.isNullOrEmpty()) {
                 com.blankj.utilcode.util.ToastUtils.showLong("订阅提醒：$fail")
-                com.orhanobut.hawk.Hawk.put("last_sub_fail_msg", "")
+                ConfigStore.putString("last_sub_fail_msg", "")
             }
         } catch (_: Throwable) {
         }

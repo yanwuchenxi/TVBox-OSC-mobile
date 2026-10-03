@@ -24,7 +24,7 @@ public final class PermissionHelper {
 
     public static void requestStartupPermissions(FragmentActivity activity) {
         if (activity == null || activity.isFinishing()) return;
-        if (Hawk.get(KEY_ASKED, false)) return;
+        if (ConfigStore.getBool(KEY_ASKED, false)) return;
 
         List<String> need = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= 33) {
@@ -46,7 +46,7 @@ public final class PermissionHelper {
             }
         }
         if (need.isEmpty()) {
-            Hawk.put(KEY_ASKED, true);
+            ConfigStore.putBool(KEY_ASKED, true);
             return;
         }
         XXPermissions.with(activity)
@@ -54,12 +54,12 @@ public final class PermissionHelper {
                 .request(new OnPermissionCallback() {
                     @Override
                     public void onGranted(List<String> permissions, boolean all) {
-                        Hawk.put(KEY_ASKED, true);
+                        ConfigStore.putBool(KEY_ASKED, true);
                     }
 
                     @Override
                     public void onDenied(List<String> permissions, boolean never) {
-                        Hawk.put(KEY_ASKED, true);
+                        ConfigStore.putBool(KEY_ASKED, true);
                     }
                 });
     }

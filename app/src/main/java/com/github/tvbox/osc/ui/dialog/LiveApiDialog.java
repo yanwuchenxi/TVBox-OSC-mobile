@@ -35,7 +35,7 @@ public class LiveApiDialog extends CenterPopupView {
     protected void onCreate() {
         super.onCreate();
         mBinding = DialogLiveApiBinding.bind(getPopupImplView());
-        String liveApi = Hawk.get(HawkConfig.LIVE_URL, "");
+        String liveApi = ConfigStore.getString(HawkConfig.LIVE_URL, "");
         updateEt(liveApi);
 
         mBinding.ivHistory.setOnClickListener(view -> {
@@ -53,7 +53,7 @@ public class LiveApiDialog extends CenterPopupView {
         mBinding.btnConfirm.setOnClickListener(view -> {
             String newLive = mBinding.etUrl.getText().toString().trim();
             // Capture Live input into Settings & Live History (max 20)
-            Hawk.put(HawkConfig.LIVE_URL, newLive);
+            ConfigStore.putString(HawkConfig.LIVE_URL, newLive);
             if (!newLive.isEmpty()) {
                 ArrayList<String> liveHistory = ConfigStore.getStringList(HawkConfig.LIVE_HISTORY);
                 if (!liveHistory.contains(newLive))

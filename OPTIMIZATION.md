@@ -48,3 +48,5 @@
 - [x] DLNA Stop / Seek
 - [ ] 品牌 protocolInfo 表
 - [ ] 模块化 feature 拆分与 UI 测试
+
+- [x] 继续清理：HOME_API、DEFAULT_PARSE、EPG_URL、字幕、健康缓存、权限标记、直播频道播放配置等迁入 ConfigStore

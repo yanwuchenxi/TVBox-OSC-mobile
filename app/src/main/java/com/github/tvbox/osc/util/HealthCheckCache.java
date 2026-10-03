@@ -10,12 +10,12 @@ public class HealthCheckCache {
     public static final long TTL_MS = 6L * 60 * 60 * 1000;
 
     public static boolean isFresh(String tsKey) {
-        long ts = Hawk.get(tsKey, 0L);
+        long ts = ConfigStore.getLong(tsKey, 0L);
         return ts > 0 && (System.currentTimeMillis() - ts) < TTL_MS;
     }
 
     public static void touch(String tsKey) {
-        Hawk.put(tsKey, System.currentTimeMillis());
+        ConfigStore.putLong(tsKey, System.currentTimeMillis());
     }
 
     public static void invalidate(String tsKey) {

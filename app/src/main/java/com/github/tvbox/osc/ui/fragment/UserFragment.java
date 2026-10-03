@@ -140,9 +140,9 @@ public class UserFragment extends BaseLazyFragment {
             int month = cal.get(Calendar.MONTH) + 1;
             int day = cal.get(Calendar.DATE);
             String today = String.format("%d%d%d", year, month, day);
-            String requestDay = Hawk.get("home_hot_day", "");
+            String requestDay = ConfigStore.getString("home_hot_day", "");
             if (requestDay.equals(today)) {
-                String json = Hawk.get("home_hot", "");
+                String json = ConfigStore.getString("home_hot", "");
                 if (!json.isEmpty()) {
                     ArrayList<Movie.Video> hotMovies = loadHots(json);
                     if (hotMovies != null && hotMovies.size() > 0) {
@@ -156,8 +156,8 @@ public class UserFragment extends BaseLazyFragment {
             NetworkClient.getStringAsync(doubanUrl, UA.randomOne(), new NetworkClient.StringCallback() {
                         @Override
                         public void onSuccess(int code, String netJson) {
-                            Hawk.put("home_hot_day", today);
-                            Hawk.put("home_hot", netJson);
+                            ConfigStore.putString("home_hot_day", today);
+                            ConfigStore.putString("home_hot", netJson);
                             if (mActivity == null) return;
                             mActivity.runOnUiThread(() -> {
                                 ArrayList<Movie.Video> videos = loadHots(netJson);

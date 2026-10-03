@@ -155,7 +155,7 @@ public class LiveActivity extends BaseActivity {
                 .hideBar(BarHide.FLAG_HIDE_NAVIGATION_BAR)
                 .init();
         context = this;
-        epgStringAddress = Hawk.get(HawkConfig.EPG_URL,"");
+        epgStringAddress = ConfigStore.getString(HawkConfig.EPG_URL, "");
         if(epgStringAddress == null || epgStringAddress.length()<5)
             epgStringAddress = "http://epg.51zmt.top:8000/api/diyp/";
 

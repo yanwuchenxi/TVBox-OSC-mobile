@@ -323,7 +323,7 @@ public class ApiConfig {
             sourceBeanList.put(siteKey, sb);
         }
         if (sourceBeanList != null && sourceBeanList.size() > 0) {
-            String home = Hawk.get(HawkConfig.HOME_API, "");
+            String home = ConfigStore.getString(HawkConfig.HOME_API, "");
             SourceBean sh = getSource(home);
             if (sh == null)
                 setSourceBean(firstSite);
@@ -349,7 +349,7 @@ public class ApiConfig {
         }
         // 获取默认解析
         if (parseBeanList != null && parseBeanList.size() > 0) {
-            String defaultParse = Hawk.get(HawkConfig.DEFAULT_PARSE, "");
+            String defaultParse = ConfigStore.getString(HawkConfig.DEFAULT_PARSE, "");
             if (!TextUtils.isEmpty(defaultParse))
                 for (ParseBean pb : parseBeanList) {
                     if (pb.getName().equals(defaultParse))
@@ -361,7 +361,7 @@ public class ApiConfig {
         // 直播源
         liveChannelGroupList.clear();           //修复从后台切换重复加载频道列表
         String liveURL = ConfigStore.getString(HawkConfig.LIVE_URL, "");
-        //String epgURL  = Hawk.get(HawkConfig.EPG_URL, "");
+        //String epgURL  = ConfigStore.getString(HawkConfig.EPG_URL, "");
 
         String liveURL_final = null;
         try {
@@ -410,7 +410,7 @@ public class ApiConfig {
                         //putEPGHistory(epg);
                         // Overwrite with EPG URL from Settings
                         //if (StringUtils.isBlank(epgURL)) {
-                            Hawk.put(HawkConfig.EPG_URL, epg);
+                            ConfigStore.putString(HawkConfig.EPG_URL, epg);
 //                        } else {
 //                            Hawk.put(HawkConfig.EPG_URL, epgURL);
 //                        }
@@ -439,7 +439,7 @@ public class ApiConfig {
                                 //putEPGHistory(epg);
                                 // Overwrite with EPG URL from Settings
                                 //if (StringUtils.isBlank(epgURL)) {
-                                    Hawk.put(HawkConfig.EPG_URL, epg);
+                                    ConfigStore.putString(HawkConfig.EPG_URL, epg);
 //                                } else {
 //                                    Hawk.put(HawkConfig.EPG_URL, epgURL);
 //                                }
@@ -678,14 +678,14 @@ public class ApiConfig {
 
     public void setSourceBean(SourceBean sourceBean) {
         this.mHomeSource = sourceBean;
-        Hawk.put(HawkConfig.HOME_API, sourceBean.getKey());
+        ConfigStore.putString(HawkConfig.HOME_API, sourceBean.getKey());
     }
 
     public void setDefaultParse(ParseBean parseBean) {
         if (this.mDefaultParse != null)
             this.mDefaultParse.setDefault(false);
         this.mDefaultParse = parseBean;
-        Hawk.put(HawkConfig.DEFAULT_PARSE, parseBean.getName());
+        ConfigStore.putString(HawkConfig.DEFAULT_PARSE, parseBean.getName());
         parseBean.setDefault(true);
     }
 

@@ -43,7 +43,11 @@ public class LivePlayerManager {
     }
 
     public void getLiveChannelPlayer(VideoView videoView, String channelName) {
-        JSONObject playerConfig = Hawk.get(channelName, null);
+        String cfgStr = ConfigStore.getString("live_ch_" + channelName, null);
+        JSONObject playerConfig = null;
+        if (cfgStr != null && !cfgStr.isEmpty()) {
+            try { playerConfig = new JSONObject(cfgStr); } catch (Throwable ignored) {}
+        }
         if (playerConfig == null) {
             if (!currentPlayerConfig.toString().equals(defaultPlayerConfig.toString()))
                 getDefaultLiveChannelPlayer(videoView);
@@ -128,9 +132,9 @@ public class LivePlayerManager {
         PlayerHelper.updateCfg(videoView, playerConfig);
 
         if (playerConfig.toString().equals(defaultPlayerConfig.toString()))
-            Hawk.delete(channelName);
+            ConfigStore.putString("live_ch_" + channelName, "");
         else
-            Hawk.put(channelName, playerConfig);
+            ConfigStore.putString("live_ch_" + channelName, playerConfig != null ? playerConfig.toString() : "");
 
         currentPlayerConfig = playerConfig;
     }
@@ -145,9 +149,9 @@ public class LivePlayerManager {
             e.printStackTrace();
         }
         if (playerConfig.toString().equals(defaultPlayerConfig.toString()))
-            Hawk.delete(channelName);
+            ConfigStore.putString("live_ch_" + channelName, "");
         else
-            Hawk.put(channelName, playerConfig);
+            ConfigStore.putString("live_ch_" + channelName, playerConfig != null ? playerConfig.toString() : "");
 
         currentPlayerConfig = playerConfig;
     }
