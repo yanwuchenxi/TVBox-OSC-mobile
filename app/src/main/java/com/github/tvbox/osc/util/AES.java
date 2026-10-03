@@ -34,7 +34,7 @@ public class AES {
             SecretKeySpec keySpec = new SecretKeySpec(key.getBytes(), "AES");
             Cipher cipher = Cipher.getInstance("AES/ECB/PKCS7Padding");
             cipher.init(Cipher.DECRYPT_MODE, keySpec);
-            return new String(cipher.doFinal(data2));
+            return new String(cipher.doFinal(data2), "UTF-8");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -47,7 +47,7 @@ public class AES {
             SecretKeySpec keySpec = new SecretKeySpec(key.getBytes(), "AES");
             AlgorithmParameterSpec paramSpec = new IvParameterSpec(iv.getBytes());
             cipher.init(Cipher.DECRYPT_MODE, keySpec, paramSpec);
-            return new String(cipher.doFinal(toBytes(data)));
+            return new String(cipher.doFinal(toBytes(data)), "UTF-8");
         } catch (Exception e) {
             e.printStackTrace();
         }

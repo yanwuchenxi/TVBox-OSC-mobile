@@ -90,30 +90,43 @@ public class ApiConfig {
     }
 
     public static String FindResult(String json, String configKey) {
-        String content = json;
+        String content = json == null ? "" : json.trim();
         try {
-            if (AES.isJson(content)) return content;
+            if (looksLikeJson(content) && AES.isJson(content)) return content;
             Pattern pattern = Pattern.compile("[A-Za-z0]{8}\\*\\*");
             Matcher matcher = pattern.matcher(content);
-            if(matcher.find()){
-                content=content.substring(content.indexOf(matcher.group()) + 10);
-                content = new String(Base64.decode(content, Base64.DEFAULT));
+            if (matcher.find()) {
+                content = content.substring(content.indexOf(matcher.group()) + 10);
+                content = new String(Base64.decode(content, Base64.DEFAULT), "UTF-8");
             }
+            // 2423 加密源：密钥材料按 ISO-8859-1 解析（UTF-8 会导致无法定位 $#key#$）
             if (content.startsWith("2423")) {
-                String data = content.substring(content.indexOf("2324") + 4, content.length() - 26);
-                content = new String(AES.toBytes(content)).toLowerCase();
-                String key = AES.rightPadding(content.substring(content.indexOf("$#") + 2, content.indexOf("#$")), "0", 16);
-                String iv = AES.rightPadding(content.substring(content.length() - 13), "0", 16);
-                json = AES.CBC(data, key, iv);
-            }else if (configKey !=null && !AES.isJson(content)) {
-                json = AES.ECB(content, configKey);
-            }
-            else{
+                int p2324 = content.indexOf("2324");
+                if (p2324 < 0 || content.length() < 30) {
+                    return json;
+                }
+                String data = content.substring(p2324 + 4, content.length() - 26);
+                String meta = new String(AES.toBytes(content), "ISO-8859-1").toLowerCase();
+                int k0 = meta.indexOf("$#");
+                int k1 = meta.indexOf("#$");
+                if (k0 < 0 || k1 <= k0) {
+                    return json;
+                }
+                String key = AES.rightPadding(meta.substring(k0 + 2, k1), "0", 16);
+                String iv = AES.rightPadding(meta.substring(meta.length() - 13), "0", 16);
+                String plain = AES.CBC(data, key, iv);
+                if (plain != null && looksLikeJson(plain)) {
+                    json = plain;
+                }
+            } else if (configKey != null && !looksLikeJson(content)) {
+                String plain = AES.ECB(content, configKey);
+                if (plain != null) json = plain;
+            } else {
                 json = content;
             }
             if (json != null) {
                 json = json.trim();
-                if (!json.isEmpty() && json.charAt(0) == '\ufeff') {
+                if (!json.isEmpty() && json.charAt(0) == '﻿') {
                     json = json.substring(1);
                 }
                 int brace = json.indexOf('{');
