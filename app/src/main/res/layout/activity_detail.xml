@@ -321,9 +321,6 @@
                     android:layout_marginVertical="16dp"
                     android:clipChildren="false"
                     android:clipToPadding="false"
-                    app:tv_horizontalSpacingWithMargins="@dimen/dp_10"
-                    app:tv_selectedItemIsCentered="true"
-                    app:tv_verticalSpacingWithMargins="@dimen/dp_10"
                     tools:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                     tools:orientation="horizontal"
                     tools:listitem="@layout/item_series"/>
