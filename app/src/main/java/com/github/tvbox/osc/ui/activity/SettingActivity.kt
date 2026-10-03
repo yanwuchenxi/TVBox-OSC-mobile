@@ -222,7 +222,7 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             dialog.setTip("请选择画面缩放")
             dialog.setAdapter(object : SelectDialogInterface<Int?> {
                 override fun click(value: Int?, pos: Int) {
-                    ConfigStore.putInt(HawkConfig.PLAY_SCALE, value)
+                    ConfigStore.putInt(HawkConfig.PLAY_SCALE, value ?: 0)
                     mBinding.tvScaleType.text = value?.let { PlayerHelper.getScaleName(it) }
                 }
 
@@ -288,7 +288,7 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             dialog.setTip("请选择默认渲染方式")
             dialog.setAdapter(object : SelectDialogInterface<Int?> {
                 override fun click(value: Int?, pos: Int) {
-                    ConfigStore.putInt(HawkConfig.PLAY_RENDER, value)
+                    ConfigStore.putInt(HawkConfig.PLAY_RENDER, value ?: 0)
                     mBinding.tvRenderType.text = PlayerHelper.getRenderName(value?:0)
                     PlayerHelper.init()
                 }
@@ -318,7 +318,7 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             dialog.setTip("主页内容显示")
             dialog.setAdapter(object : SelectDialogInterface<Int?> {
                 override fun click(value: Int?, pos: Int) {
-                    ConfigStore.putInt(HawkConfig.HOME_REC, value)
+                    ConfigStore.putInt(HawkConfig.HOME_REC, value ?: 0)
                     mBinding.tvHomeRec.text = getHomeRecName(value?:0)
                 }
 
@@ -348,7 +348,7 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             dialog.setTip("保留历史记录数量")
             dialog.setAdapter(object : SelectDialogInterface<Int?> {
                 override fun click(value: Int?, pos: Int) {
-                    ConfigStore.putInt(HawkConfig.HISTORY_NUM, value)
+                    ConfigStore.putInt(HawkConfig.HISTORY_NUM, value ?: 0)
                     mBinding.tvHistoryNum.text = HistoryHelper.getHistoryNumName(value?:0)
                 }
 
@@ -388,7 +388,7 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
             dialog.setAdapter(object : SelectDialogInterface<Int?> {
                 override fun click(value: Int?, pos: Int) {
                     mBinding.tvTheme.text = themes[value?:0]
-                    ConfigStore.putInt(HawkConfig.THEME_TAG, value)
+                    ConfigStore.putInt(HawkConfig.THEME_TAG, value ?: 0)
                 }
 
                 override fun getDisplay(value: Int?): String {
