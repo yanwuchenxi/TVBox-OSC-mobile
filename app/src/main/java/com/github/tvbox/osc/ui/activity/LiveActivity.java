@@ -440,7 +440,9 @@ public class LiveActivity extends BaseActivity {
     private Runnable mFocusAndShowSettingGroup = new Runnable() {
         @Override
         public void run() {
-            if (mSettingGroupView.isScrolling() || mSettingItemView.isScrolling() || mSettingGroupView.isComputingLayout() || mSettingItemView.isComputingLayout()) {
+            if (mSettingGroupView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE
+                    || mSettingItemView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE
+                    || mSettingGroupView.isComputingLayout() || mSettingItemView.isComputingLayout()) {
                 mHandler.postDelayed(this, 100);
             } else {
                 RecyclerView.ViewHolder holder = mSettingGroupView.findViewHolderForAdapterPosition(0);
