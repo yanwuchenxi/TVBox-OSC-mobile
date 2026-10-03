@@ -65,7 +65,6 @@ import com.lxj.xpopup.enums.PopupPosition;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.AbsCallback;
 import com.lzy.okgo.model.Response;
-import com.orhanobut.hawk.Hawk;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import java.text.ParseException;

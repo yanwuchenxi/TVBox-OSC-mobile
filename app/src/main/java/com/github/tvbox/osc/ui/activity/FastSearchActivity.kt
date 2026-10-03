@@ -48,7 +48,6 @@ import com.lxj.xpopup.interfaces.SimpleCallback
 import com.lzy.okgo.OkGo
 import com.lzy.okgo.callback.AbsCallback
 import com.lzy.okgo.callback.StringCallback
-import com.orhanobut.hawk.Hawk
 import com.zhy.view.flowlayout.FlowLayout
 import com.zhy.view.flowlayout.TagAdapter
 import okhttp3.Response

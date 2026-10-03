@@ -16,7 +16,6 @@ import com.lzy.okgo.https.HttpsUtils;
 import com.lzy.okgo.interceptor.HttpLoggingInterceptor;
 import com.lzy.okgo.model.HttpHeaders;
 import com.github.tvbox.osc.util.ConfigStore;
-import com.orhanobut.hawk.Hawk;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;

@@ -18,7 +18,6 @@ import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.lxj.xpopup.core.BottomPopupView;
 import com.lxj.xpopup.core.DrawerPopupView;
-import com.orhanobut.hawk.Hawk;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import org.jetbrains.annotations.NotNull;

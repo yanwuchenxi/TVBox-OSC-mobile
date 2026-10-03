@@ -29,7 +29,6 @@ import com.hjq.permissions.Permission
 import com.hjq.permissions.XXPermissions
 import com.lxj.xpopup.XPopup
 import com.github.tvbox.osc.util.ConfigStore
-import com.orhanobut.hawk.Hawk
 import okhttp3.HttpUrl
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
 import java.io.File

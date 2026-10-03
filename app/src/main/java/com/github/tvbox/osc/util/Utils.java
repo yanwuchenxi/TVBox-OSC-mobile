@@ -10,7 +10,6 @@ import androidx.appcompat.app.AppCompatDelegate;
 import com.github.tvbox.osc.base.App;
 import com.github.tvbox.osc.bean.VideoInfo;
 import com.github.tvbox.osc.bean.VodInfo;
-import com.orhanobut.hawk.Hawk;
 
 import java.util.ArrayList;
 import java.util.Formatter;
@@ -101,7 +100,7 @@ public class Utils {
     }
 
     public static void initTheme(){
-        switch (Hawk.get(HawkConfig.THEME_TAG,0)) {
+        switch (ConfigStore.getInt(HawkConfig.THEME_TAG, 0)) {
             case 0:
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
                 break;

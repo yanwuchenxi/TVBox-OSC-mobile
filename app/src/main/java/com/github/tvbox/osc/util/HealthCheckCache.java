@@ -1,6 +1,5 @@
 package com.github.tvbox.osc.util;
 
-import com.orhanobut.hawk.Hawk;
 
 /**
  * 健康检测结果缓存，避免每次进首页都打满请求。
@@ -19,6 +18,6 @@ public class HealthCheckCache {
     }
 
     public static void invalidate(String tsKey) {
-        Hawk.delete(tsKey);
+        ConfigStore.remove(tsKey);
     }
 }

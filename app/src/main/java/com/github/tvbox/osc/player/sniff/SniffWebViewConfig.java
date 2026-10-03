@@ -7,7 +7,6 @@ import android.webkit.WebView;
 
 import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
-import com.orhanobut.hawk.Hawk;
 
 /**
  * 嗅探 WebView 通用设置，从 PlayFragment.configWebViewSys 拆出。

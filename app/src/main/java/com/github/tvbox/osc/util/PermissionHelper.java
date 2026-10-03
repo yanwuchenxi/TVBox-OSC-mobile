@@ -8,7 +8,6 @@ import androidx.fragment.app.FragmentActivity;
 
 import com.hjq.permissions.OnPermissionCallback;
 import com.hjq.permissions.XXPermissions;
-import com.orhanobut.hawk.Hawk;
 
 import java.util.ArrayList;
 import java.util.List;

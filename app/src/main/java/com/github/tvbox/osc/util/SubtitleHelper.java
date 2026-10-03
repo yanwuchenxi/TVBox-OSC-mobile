@@ -2,7 +2,6 @@ package com.github.tvbox.osc.util;
 
 import android.app.Activity;
 
-import com.orhanobut.hawk.Hawk;
 
 public class SubtitleHelper {
 

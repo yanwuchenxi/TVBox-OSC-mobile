@@ -26,7 +26,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.orhanobut.hawk.Hawk;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;

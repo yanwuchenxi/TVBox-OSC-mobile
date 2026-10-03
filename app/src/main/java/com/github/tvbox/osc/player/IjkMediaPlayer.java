@@ -9,7 +9,6 @@ import com.github.tvbox.osc.util.FileUtils;
 import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.MD5;
-import com.orhanobut.hawk.Hawk;
 
 import java.io.File;
 import java.util.LinkedHashMap;

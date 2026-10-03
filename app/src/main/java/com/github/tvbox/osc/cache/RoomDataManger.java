@@ -15,7 +15,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-import com.orhanobut.hawk.Hawk;
 import java.util.ArrayList;
 import java.util.List;
 

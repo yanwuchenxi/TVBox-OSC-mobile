@@ -9,7 +9,6 @@ import com.github.tvbox.osc.server.RemoteServer;
 import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.IpScanning;
-import com.orhanobut.hawk.Hawk;
 
 import java.io.IOException;
 import java.net.URLEncoder;

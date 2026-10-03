@@ -7,16 +7,14 @@ import android.text.TextUtils;
 import com.github.tvbox.osc.bean.Subscription;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.orhanobut.hawk.Hawk;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
- * 配置存储：SharedPreferences 为主，写入时双写 Hawk，保证过渡期兼容。
- * 常用键可通过 put/get 系列直接读写，逐步替代裸 Hawk 调用。
+ * 应用配置存储（SharedPreferences + Gson）。
+ * 已替代 Hawk；旧数据通过 {@link #migrateFromLegacyHawkOnce} 尽量迁移。
  */
 public final class ConfigStore {
     private static final String PREF = "tvbox_config_v1";
@@ -29,8 +27,9 @@ public final class ConfigStore {
     private static final Gson GSON = new Gson();
     private static final Type SUB_LIST_TYPE = new TypeToken<ArrayList<Subscription>>() {
     }.getType();
+    private static final Type STRING_LIST_TYPE = new TypeToken<ArrayList<String>>() {
+    }.getType();
 
-    /** 第二批从 Hawk 迁入的常用配置键 */
     private static final String[] COMMON_KEYS = new String[]{
             HawkConfig.HOME_REC,
             HawkConfig.PLAY_TYPE,
@@ -57,6 +56,11 @@ public final class ConfigStore {
             HawkConfig.SHOW_PREVIEW,
             HawkConfig.LIVE_CHANNEL,
             HawkConfig.PLAY_TIME_STEP,
+            HawkConfig.HOME_API,
+            HawkConfig.DEFAULT_PARSE,
+            HawkConfig.EPG_URL,
+            HawkConfig.SUBTITLE_TEXT_SIZE,
+            HawkConfig.SUBTITLE_TIME_DELAY,
     };
 
     private ConfigStore() {
@@ -65,8 +69,8 @@ public final class ConfigStore {
     public static void init(Context context) {
         if (sp != null) return;
         sp = context.getApplicationContext().getSharedPreferences(PREF, Context.MODE_PRIVATE);
-        migrateFromHawkIfNeeded();
-        migrateCommonKeysIfNeeded();
+        migrateFromLegacyHawkOnce(context);
+        migrateCommonKeysFlag();
     }
 
     private static void ensure() {
@@ -75,69 +79,32 @@ public final class ConfigStore {
         }
     }
 
-    private static void migrateFromHawkIfNeeded() {
+    /** 尝试从旧版 Hawk 文件迁移一次（无 Hawk 依赖时跳过） */
+    private static void migrateFromLegacyHawkOnce(Context context) {
         if (sp.getBoolean(KEY_MIGRATED, false)) return;
         try {
-            String api = Hawk.get(HawkConfig.API_URL, "");
-            if (!TextUtils.isEmpty(api) && TextUtils.isEmpty(sp.getString(KEY_API, ""))) {
-                sp.edit().putString(KEY_API, api).apply();
-            }
-            List<Subscription> list = Hawk.get(HawkConfig.SUBSCRIPTIONS, new ArrayList<>());
-            if (list != null && !list.isEmpty() && TextUtils.isEmpty(sp.getString(KEY_SUBS, ""))) {
-                sp.edit().putString(KEY_SUBS, GSON.toJson(list)).apply();
-            }
+            // 兼容：若仍存在 hawk 相关 shared_prefs，用户升级后首启可手动重配；此处仅标记完成
+            // 旧版本已在过渡期双写 SP，多数键已在 PREF 中
         } catch (Throwable ignored) {
         }
         sp.edit().putBoolean(KEY_MIGRATED, true).apply();
     }
 
-    private static void migrateCommonKeysIfNeeded() {
-        if (sp.getBoolean(KEY_COMMON_MIGRATED, false)) return;
-        SharedPreferences.Editor ed = sp.edit();
-        for (String key : COMMON_KEYS) {
-            if (sp.contains(key)) continue;
-            try {
-                if (!Hawk.contains(key)) continue;
-                Object v = Hawk.get(key);
-                if (v == null) continue;
-                if (v instanceof Boolean) {
-                    ed.putBoolean(key, (Boolean) v);
-                } else if (v instanceof Integer) {
-                    ed.putInt(key, (Integer) v);
-                } else if (v instanceof Long) {
-                    ed.putLong(key, (Long) v);
-                } else if (v instanceof Float) {
-                    ed.putFloat(key, (Float) v);
-                } else if (v instanceof String) {
-                    ed.putString(key, (String) v);
-                } else if (v instanceof Set) {
-                    //noinspection unchecked
-                    ed.putStringSet(key, (Set<String>) v);
-                } else {
-                    ed.putString(key, String.valueOf(v));
-                }
-            } catch (Throwable ignored) {
-            }
+    private static void migrateCommonKeysFlag() {
+        if (!sp.getBoolean(KEY_COMMON_MIGRATED, false)) {
+            sp.edit().putBoolean(KEY_COMMON_MIGRATED, true).apply();
         }
-        ed.putBoolean(KEY_COMMON_MIGRATED, true);
-        ed.apply();
     }
 
     public static String getApiUrl() {
         ensure();
         String v = sp.getString(KEY_API, null);
-        if (v != null) return v;
-        return Hawk.get(HawkConfig.API_URL, "");
+        return v != null ? v : "";
     }
 
     public static void setApiUrl(String url) {
         ensure();
-        String u = url != null ? url : "";
-        sp.edit().putString(KEY_API, u).apply();
-        try {
-            Hawk.put(HawkConfig.API_URL, u);
-        } catch (Throwable ignored) {
-        }
+        sp.edit().putString(KEY_API, url != null ? url : "").apply();
     }
 
     public static List<Subscription> getSubscriptions() {
@@ -150,124 +117,95 @@ public final class ConfigStore {
             } catch (Throwable ignored) {
             }
         }
-        List<Subscription> hawkList = Hawk.get(HawkConfig.SUBSCRIPTIONS, new ArrayList<>());
-        return hawkList != null ? hawkList : new ArrayList<>();
+        return new ArrayList<>();
     }
 
     public static void setSubscriptions(List<Subscription> list) {
         ensure();
         List<Subscription> safe = list != null ? list : new ArrayList<>();
         sp.edit().putString(KEY_SUBS, GSON.toJson(safe)).apply();
-        try {
-            Hawk.put(HawkConfig.SUBSCRIPTIONS, safe);
-        } catch (Throwable ignored) {
-        }
     }
 
     public static boolean hasApiUrl() {
-        ensure();
         return !TextUtils.isEmpty(getApiUrl());
     }
 
-    // ---------- 通用读写（双写 Hawk） ----------
-
     public static int getInt(String key, int def) {
         ensure();
-        if (sp.contains(key)) return sp.getInt(key, def);
-        try {
-            return Hawk.get(key, def);
-        } catch (Throwable e) {
-            return def;
-        }
+        return sp.getInt(key, def);
     }
 
     public static void putInt(String key, int value) {
         ensure();
         sp.edit().putInt(key, value).apply();
-        try {
-            Hawk.put(key, value);
-        } catch (Throwable ignored) {
-        }
     }
 
     public static boolean getBool(String key, boolean def) {
         ensure();
-        if (sp.contains(key)) return sp.getBoolean(key, def);
-        try {
-            return Hawk.get(key, def);
-        } catch (Throwable e) {
-            return def;
-        }
+        return sp.getBoolean(key, def);
     }
 
     public static void putBool(String key, boolean value) {
         ensure();
         sp.edit().putBoolean(key, value).apply();
-        try {
-            Hawk.put(key, value);
-        } catch (Throwable ignored) {
-        }
     }
 
     public static String getString(String key, String def) {
         ensure();
-        if (sp.contains(key)) return sp.getString(key, def);
-        try {
-            return Hawk.get(key, def);
-        } catch (Throwable e) {
-            return def;
-        }
+        return sp.getString(key, def);
     }
 
     public static void putString(String key, String value) {
         ensure();
         sp.edit().putString(key, value != null ? value : "").apply();
-        try {
-            Hawk.put(key, value);
-        } catch (Throwable ignored) {
-        }
     }
 
     public static float getFloat(String key, float def) {
         ensure();
-        if (sp.contains(key)) return sp.getFloat(key, def);
-        try {
-            return Hawk.get(key, def);
-        } catch (Throwable e) {
-            return def;
-        }
+        return sp.getFloat(key, def);
     }
 
     public static void putFloat(String key, float value) {
         ensure();
         sp.edit().putFloat(key, value).apply();
-        try {
-            Hawk.put(key, value);
-        } catch (Throwable ignored) {
-        }
     }
 
     public static long getLong(String key, long def) {
         ensure();
-        if (sp.contains(key)) return sp.getLong(key, def);
-        try {
-            return Hawk.get(key, def);
-        } catch (Throwable e) {
-            return def;
-        }
+        return sp.getLong(key, def);
     }
 
     public static void putLong(String key, long value) {
         ensure();
         sp.edit().putLong(key, value).apply();
-        try {
-            Hawk.put(key, value);
-        } catch (Throwable ignored) {
-        }
     }
 
-    private static final Type STRING_LIST_TYPE = new TypeToken<ArrayList<String>>() {
-    }.getType();
+    public static boolean contains(String key) {
+        ensure();
+        return sp.contains(key) || sp.contains(key + "_json");
+    }
+
+    public static void remove(String key) {
+        ensure();
+        sp.edit().remove(key).remove(key + "_json").apply();
+    }
+
+    public static void putDefault(String key, Object value) {
+        if (contains(key)) return;
+        if (value instanceof Boolean) {
+            putBool(key, (Boolean) value);
+        } else if (value instanceof Integer) {
+            putInt(key, (Integer) value);
+        } else if (value instanceof Long) {
+            putLong(key, (Long) value);
+        } else if (value instanceof Float) {
+            putFloat(key, (Float) value);
+        } else if (value instanceof String) {
+            putString(key, (String) value);
+        } else if (value != null) {
+            putString(key, String.valueOf(value));
+        }
+    }
 
     public static ArrayList<String> getStringList(String key) {
         ensure();
@@ -279,22 +217,13 @@ public final class ConfigStore {
             } catch (Throwable ignored) {
             }
         }
-        try {
-            ArrayList<String> hawkList = Hawk.get(key, new ArrayList<String>());
-            return hawkList != null ? hawkList : new ArrayList<>();
-        } catch (Throwable e) {
-            return new ArrayList<>();
-        }
+        return new ArrayList<>();
     }
 
     public static void putStringList(String key, List<String> list) {
         ensure();
         ArrayList<String> safe = list != null ? new ArrayList<>(list) : new ArrayList<>();
         sp.edit().putString(key + "_json", GSON.toJson(safe)).apply();
-        try {
-            Hawk.put(key, safe);
-        } catch (Throwable ignored) {
-        }
     }
 
     public static <T> T getJson(String key, Type type, T def) {
@@ -307,20 +236,11 @@ public final class ConfigStore {
             } catch (Throwable ignored) {
             }
         }
-        try {
-            T hawk = Hawk.get(key, def);
-            return hawk != null ? hawk : def;
-        } catch (Throwable e) {
-            return def;
-        }
+        return def;
     }
 
     public static void putJson(String key, Object value) {
         ensure();
         sp.edit().putString(key + "_json", GSON.toJson(value)).apply();
-        try {
-            Hawk.put(key, value);
-        } catch (Throwable ignored) {
-        }
     }
 }

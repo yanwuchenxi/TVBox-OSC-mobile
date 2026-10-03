@@ -42,7 +42,6 @@ import com.github.tvbox.osc.util.ConfigStore
 import com.github.tvbox.osc.util.HawkConfig
 import com.github.tvbox.osc.viewmodel.SourceViewModel
 import com.lxj.xpopup.XPopup
-import com.orhanobut.hawk.Hawk
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.GridLayoutManager
 import kotlinx.coroutines.Dispatchers
@@ -276,7 +275,7 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
             for (data in mSortDataList) {
                 mBinding.tabLayout.addView(getTabTextView(data.name))
                 if (data.id == "my0") { //tab是主页,添加主页fragment 根据设置项显示豆瓣热门/站点推荐(每个源不一样)/历史记录
-                    if (Hawk.get(
+                    if (ConfigStore.getInt(
                             HawkConfig.HOME_REC,
                             0
                         ) == 1 && absXml != null && absXml.videoList != null && absXml.videoList.size > 0

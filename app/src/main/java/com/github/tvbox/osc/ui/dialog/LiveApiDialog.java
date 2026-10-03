@@ -14,7 +14,6 @@ import com.lxj.xpopup.XPopup;
 import com.lxj.xpopup.core.CenterPopupView;
 import com.lxj.xpopup.interfaces.OnInputConfirmListener;
 import com.github.tvbox.osc.util.ConfigStore;
-import com.orhanobut.hawk.Hawk;
 
 import java.util.ArrayList;
 

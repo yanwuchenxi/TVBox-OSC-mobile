@@ -14,7 +14,6 @@ import com.github.tvbox.osc.player.thirdparty.ReexPlayer;
 import com.github.tvbox.osc.player.thirdparty.RemoteTVBox;
 import com.github.tvbox.osc.player.thirdparty.VlcPlayer;
 import com.github.tvbox.osc.util.ConfigStore;
-import com.orhanobut.hawk.Hawk;
 
 import org.json.JSONException;
 import org.json.JSONObject;

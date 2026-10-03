@@ -25,7 +25,6 @@ import com.github.tvbox.osc.util.OkGoHelper;
 import com.github.tvbox.osc.util.PlayerHelper;
 import com.github.tvbox.osc.util.Utils;
 import com.kingja.loadsir.core.LoadSir;
-import com.orhanobut.hawk.Hawk;
 import com.p2p.P2PClass;
 import com.whl.quickjs.android.QuickJSLoader;
 
@@ -106,37 +105,33 @@ public class App extends MultiDexApplication {
     }
 
     private void initParams() {
-        // Hawk
-        Hawk.init(this).build();
-        com.github.tvbox.osc.util.ConfigStore.init(this);
+        ConfigStore.init(this);
         ConfigStore.putBool(HawkConfig.DEBUG_OPEN, false);
 
-        putDefault(HawkConfig.HOME_REC, 0);                  //推荐: 0=豆瓣热播, 1=站点推荐
-        putDefault(HawkConfig.PLAY_TYPE, 2);                 //播放器: 0=系统, 1=IJK, 2=Exo
-        putDefault(HawkConfig.IJK_CODEC, "硬解码");           //IJK解码: 软解码, 硬解码
-        putDefault(HawkConfig.BACKGROUND_PLAY_TYPE,2);           //后台播放: 0 关闭,1 开启,2 画中画
-        putDefault(HawkConfig.DOH_URL, 0);                   //安全DNS: 0=关闭, 1=腾讯, 2=阿里, 3=360, 4=Google, 5=AdGuard, 6=Quad9
-        putDefault(HawkConfig.PLAY_SCALE, 0);                //画面缩放: 0=默认, 1=16:9, 2=4:3, 3=填充, 4=原始, 5=裁剪
-        putDefault(HawkConfig.HISTORY_NUM, 2);
-        putDefault(HawkConfig.VIDEO_PURIFY_LEVEL, 1); // 标准净化                //历史记录数量: 0=30, 1=50, 2=70
+        ConfigStore.putDefault(HawkConfig.HOME_REC, 0);                  //推荐: 0=豆瓣热播, 1=站点推荐
+        ConfigStore.putDefault(HawkConfig.PLAY_TYPE, 2);                 //播放器: 0=系统, 1=IJK, 2=Exo
+        ConfigStore.putDefault(HawkConfig.IJK_CODEC, "硬解码");           //IJK解码: 软解码, 硬解码
+        ConfigStore.putDefault(HawkConfig.BACKGROUND_PLAY_TYPE, 2);      //后台播放: 0 关闭,1 开启,2 画中画
+        ConfigStore.putDefault(HawkConfig.DOH_URL, 0);                   //安全DNS
+        ConfigStore.putDefault(HawkConfig.PLAY_SCALE, 0);                //画面缩放
+        ConfigStore.putDefault(HawkConfig.HISTORY_NUM, 2);
+        ConfigStore.putDefault(HawkConfig.VIDEO_PURIFY_LEVEL, 1); // 标准净化
         putDefaultApi();
     }
 
     private void putDefaultApi() {
         String[] apis = getResources().getStringArray(R.array.api);
-        if(!Hawk.contains(HawkConfig.API_URL) && !com.github.tvbox.osc.util.ConfigStore.hasApiUrl() && !Hawk.contains(HawkConfig.SUBSCRIPTIONS) && !TextUtils.isEmpty(apis[0])){
+        if (!ConfigStore.hasApiUrl() && TextUtils.isEmpty(ConfigStore.getApiUrl()) && !TextUtils.isEmpty(apis[0])) {
             List<Subscription> subscriptions = new ArrayList<>();
             for (int i = 0; i < apis.length; i++) {
-                if (i==0){
+                if (i == 0) {
                     subscriptions.add(new Subscription("订阅: 1", apis[0]).setChecked(true));
-                    Hawk.put(HawkConfig.API_URL,apis[0]);
-                    com.github.tvbox.osc.util.ConfigStore.setApiUrl(apis[0]);
-                }else {
-                    subscriptions.add(new Subscription("订阅: "+(i+1), apis[i]));
+                    ConfigStore.setApiUrl(apis[0]);
+                } else {
+                    subscriptions.add(new Subscription("订阅: " + (i + 1), apis[i]));
                 }
             }
-            Hawk.put(HawkConfig.SUBSCRIPTIONS,subscriptions);
-            com.github.tvbox.osc.util.ConfigStore.setSubscriptions(subscriptions);
+            ConfigStore.setSubscriptions(subscriptions);
         }
     }
 
@@ -150,10 +145,6 @@ public class App extends MultiDexApplication {
         JsLoader.load();
     }
 
-    private void putDefault(String key, Object value) {
-        if (!Hawk.contains(key)) {
-            Hawk.put(key, value);
-        }
     }
 
 

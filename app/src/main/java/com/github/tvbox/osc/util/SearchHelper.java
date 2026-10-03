@@ -6,7 +6,6 @@ import java.lang.reflect.Type;
 import com.github.tvbox.osc.api.ApiConfig;
 import com.github.tvbox.osc.bean.SourceBean;
 import com.github.tvbox.osc.ui.activity.FastSearchActivity;
-import com.orhanobut.hawk.Hawk;
 
 import java.util.ArrayList;
 import java.util.Arrays;

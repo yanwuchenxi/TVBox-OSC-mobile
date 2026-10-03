@@ -32,7 +32,6 @@ import com.lzy.okgo.callback.AbsCallback
 import com.lzy.okgo.model.Response
 import com.obsez.android.lib.filechooser.ChooserDialog
 import com.github.tvbox.osc.util.ConfigStore
-import com.orhanobut.hawk.Hawk
 import java.util.function.Consumer
 
 class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {

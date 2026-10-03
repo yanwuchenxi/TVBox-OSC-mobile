@@ -13,7 +13,6 @@ import com.google.gson.JsonObject;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.model.HttpHeaders;
 import com.github.tvbox.osc.util.ConfigStore;
-import com.orhanobut.hawk.Hawk;
 
 import org.json.JSONObject;
 

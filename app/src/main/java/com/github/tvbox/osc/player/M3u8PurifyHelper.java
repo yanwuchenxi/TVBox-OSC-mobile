@@ -3,7 +3,6 @@ package com.github.tvbox.osc.player;
 import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.M3u8AdFilter;
-import com.orhanobut.hawk.Hawk;
 
 /**
  * 播放管线：m3u8 净化档位读取与过滤，从 PlayFragment 拆出。
