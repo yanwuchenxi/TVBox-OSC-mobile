@@ -122,6 +122,9 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                 } else {
                     DefaultConfig.adjustSort(ApiConfig.get().homeSourceBean.key, ArrayList(), true)
                 }
+            if (mSortDataList.isNullOrEmpty() || (mSortDataList.size == 1 && mSortDataList[0].id == "my0")) {
+                ToastUtils.showLong("站点无分类数据，请检查 spider/jar 是否与配置同目录")
+            }
             initViewPager(absXml)
         }
     }

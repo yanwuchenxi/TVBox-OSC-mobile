@@ -331,8 +331,10 @@ public class ApiConfig {
         String jarUrl = urls[0];
         String md5 = urls.length > 1 ? urls[1].trim() : "";
         File cache = new File(App.getInstance().getFilesDir().getAbsolutePath() + "/csp.jar");
-        // 切换订阅后 spider 变化时不复用旧 jar
-        if (lastLoadedSpider != null && !lastLoadedSpider.isEmpty() && !jarUrl.equals(lastLoadedSpider)) {
+        // 本地路径或切换订阅后禁止复用旧 csp.jar
+        boolean localSpider = jarUrl.startsWith("clan://") || jarUrl.startsWith("/")
+                || (!jarUrl.startsWith("http://") && !jarUrl.startsWith("https://") && !jarUrl.startsWith("img+"));
+        if (localSpider || (lastLoadedSpider != null && !lastLoadedSpider.isEmpty() && !jarUrl.equals(lastLoadedSpider))) {
             useCache = false;
             try { if (cache.exists()) cache.delete(); } catch (Throwable ignored) {}
         }
@@ -425,6 +427,8 @@ private void parseJson(String apiUrl, String jsonStr) {
         JsonObject infoJson = new Gson().fromJson(jsonStr, JsonObject.class);
         // spider
         spider = DefaultConfig.safeJsonString(infoJson, "spider", "");
+        // 本地配置：把相对 spider 转成 clan://localhost/目录/xxx，便于直读
+        spider = resolveRelativeToConfig(apiUrl, spider);
         // wallpaper
         wallpaper = DefaultConfig.safeJsonString(infoJson, "wallpaper", "");
         // 远端站点源
@@ -441,7 +445,7 @@ private void parseJson(String apiUrl, String jsonStr) {
             sb.setKey(siteKey);
             sb.setName(obj.get("name").getAsString().trim());
             sb.setType(obj.get("type").getAsInt());
-            sb.setApi(obj.get("api").getAsString().trim());
+            sb.setApi(resolveRelativeToConfig(apiUrl, obj.get("api").getAsString().trim()));
             sb.setSearchable(DefaultConfig.safeJsonInt(obj, "searchable", 1));
             sb.setQuickSearch(DefaultConfig.safeJsonInt(obj, "quickSearch", 1));
             sb.setFilterable(DefaultConfig.safeJsonInt(obj, "filterable", 1));
@@ -451,7 +455,7 @@ private void parseJson(String apiUrl, String jsonStr) {
             }else {
                 sb.setExt(DefaultConfig.safeJsonString(obj, "ext", ""));
             }
-            sb.setJar(DefaultConfig.safeJsonString(obj, "jar", ""));
+            sb.setJar(resolveRelativeToConfig(apiUrl, DefaultConfig.safeJsonString(obj, "jar", "")));
             sb.setPlayerType(DefaultConfig.safeJsonInt(obj, "playerType", -1));
             sb.setCategories(DefaultConfig.safeJsonStringList(obj, "categories"));
             sb.setClickSelector(DefaultConfig.safeJsonString(obj, "click", ""));
