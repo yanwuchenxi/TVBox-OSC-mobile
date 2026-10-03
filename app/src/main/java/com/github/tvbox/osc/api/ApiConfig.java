@@ -283,14 +283,14 @@ public class ApiConfig {
         }).start();
     }
 
-        private void parseJson(String apiUrl, File f) throws Throwable {
+    private void parseJson(String apiUrl, File f) throws Throwable {
         System.out.println("从本地缓存加载" + f.getAbsolutePath());
         BufferedReader bReader = new BufferedReader(new InputStreamReader(new FileInputStream(f), "UTF-8"));
         StringBuilder sb = new StringBuilder();
-        String s = "";
+        String s;
         while ((s = bReader.readLine()) != null) {
-            sb.append(s + "
-");
+            sb.append(s);
+            sb.append("\n");
         }
         bReader.close();
         String content = sb.toString();
