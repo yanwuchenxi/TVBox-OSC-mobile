@@ -154,44 +154,6 @@ public class ApiConfig {
                 th.printStackTrace();
             }
         }
-        // clan://localhost/ 直接读本地文件，避免依赖本地 HTTP 服务与中文路径编码问题
-        if (apiUrl.startsWith("clan://localhost/")) {
-            final String finalApiUrlClan = apiUrl;
-            final File finalCacheClan = cache;
-            new Thread(() -> {
-                try {
-                    String result = readClanLocalhostFile(finalApiUrlClan);
-                    if (result == null) result = "";
-                    if (!com.github.tvbox.osc.util.AES.isJson(result.trim())) {
-                        result = FindResult(result, null);
-                    }
-                    if (result == null || !com.github.tvbox.osc.util.AES.isJson(result.trim())) {
-                        throw new IllegalStateException("本地配置不是合法 JSON 或文件不存在: " + finalApiUrlClan);
-                    }
-                    result = clanContentFix(clanToAddress(finalApiUrlClan), result);
-                    result = fixContentPath(finalApiUrlClan, result);
-                    parseJson(finalApiUrlClan, result);
-                    try {
-                        File cacheDir = finalCacheClan.getParentFile();
-                        if (cacheDir != null && !cacheDir.exists()) cacheDir.mkdirs();
-                        if (finalCacheClan.exists()) finalCacheClan.delete();
-                        FileOutputStream fos = new FileOutputStream(finalCacheClan);
-                        fos.write(result.getBytes("UTF-8"));
-                        fos.flush();
-                        fos.close();
-                    } catch (Throwable ignored) {
-                    }
-                    new android.os.Handler(android.os.Looper.getMainLooper()).post(callback::success);
-                } catch (Throwable th) {
-                    th.printStackTrace();
-                    String msg = th.getMessage();
-                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
-                            callback.error(msg != null && !msg.isEmpty() ? msg : "本地配置读取失败"));
-                }
-            }).start();
-            return;
-        }
-
         String TempKey = null, configUrl = "", pk = ";pk;";
         if (apiUrl.contains(pk)) {
             String[] a = apiUrl.split(pk);
@@ -216,63 +178,62 @@ public class ApiConfig {
         hdrs.put("Accept", requestAccept);
         final String finalApiUrl = apiUrl;
         final File finalCache = cache;
-        com.github.tvbox.osc.util.NetworkClient.getStringAsync(configUrl, null, hdrs,
-                new com.github.tvbox.osc.util.NetworkClient.StringCallback() {
-                    @Override
-                    public void onSuccess(int code, String body) {
-                        try {
-                            String result = body != null ? body : "";
-                            // 加密源（2423 / Base64** 等）即使 URL 无 ;pk; 也尝试解密
-                            if (!com.github.tvbox.osc.util.AES.isJson(result.trim())) {
-                                result = FindResult(result, configKey);
-                            }
-                            if (result == null || !com.github.tvbox.osc.util.AES.isJson(result.trim())) {
-                                throw new IllegalStateException("配置不是合法 JSON（加密源解密失败或内容损坏）");
-                            }
-                            if (finalApiUrl.startsWith("clan")) {
-                                result = clanContentFix(clanToAddress(finalApiUrl), result);
-                            }
-                            result = fixContentPath(finalApiUrl, result);
-                            parseJson(finalApiUrl, result);
-                            try {
-                                File cacheDir = finalCache.getParentFile();
-                                if (!cacheDir.exists())
-                                    cacheDir.mkdirs();
-                                if (finalCache.exists())
-                                    finalCache.delete();
-                                FileOutputStream fos = new FileOutputStream(finalCache);
-                                fos.write(result.getBytes("UTF-8"));
-                                fos.flush();
-                                fos.close();
-                            } catch (Throwable th) {
-                                th.printStackTrace();
-                            }
-                            callback.success();
-                        } catch (Throwable th) {
-                            th.printStackTrace();
-                            try {
-                                if (finalCache.exists()) finalCache.delete();
-                            } catch (Throwable ignored) {
-                            }
-                            String msg = th.getMessage();
-                            callback.error(msg != null && msg.length() > 0 ? msg : "解析配置失败");
-                        }
+        final String finalConfigUrl = configUrl;
+        final String finalConfigKey = configKey;
+        // 对齐可工作版本 74bd837：clan 走本地 HTTP /file/；并增加「直读文件」作为优先/回退
+        new Thread(() -> {
+            android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
+            try {
+                String result = null;
+                // 1) clan://localhost 优先直接读盘（避免服务未就绪）
+                if (finalApiUrl.startsWith("clan://localhost/")) {
+                    try {
+                        result = readClanLocalhostFile(finalApiUrl);
+                    } catch (Throwable ignored) {
+                        result = null;
                     }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        if (finalCache.exists()) {
-                            try {
-                                parseJson(finalApiUrl, finalCache);
-                                callback.success();
-                                return;
-                            } catch (Throwable th) {
-                                th.printStackTrace();
-                            }
-                        }
-                        callback.error("拉取配置失败\n" + (e != null && e.getMessage() != null ? e.getMessage() : ""));
+                }
+                // 2) 与 74bd837 相同：HTTP 拉取（含 clan 转 file/）
+                if (result == null || result.isEmpty()) {
+                    result = com.github.tvbox.osc.util.NetworkClient.getStringSync(finalConfigUrl, null, hdrs);
+                }
+                if (result == null) result = "";
+                if (finalConfigKey != null) {
+                    result = FindResult(result, finalConfigKey);
+                } else if (!looksLikeJson(result)) {
+                    String dec = FindResult(result, null);
+                    if (dec != null && looksLikeJson(dec)) result = dec;
+                }
+                if (finalApiUrl.startsWith("clan")) {
+                    result = clanContentFix(clanToAddress(finalApiUrl), result);
+                }
+                result = fixContentPath(finalApiUrl, result);
+                parseJson(finalApiUrl, result);
+                try {
+                    File cacheDir = finalCache.getParentFile();
+                    if (cacheDir != null && !cacheDir.exists()) cacheDir.mkdirs();
+                    if (finalCache.exists()) finalCache.delete();
+                    FileOutputStream fos = new FileOutputStream(finalCache);
+                    fos.write(result.getBytes("UTF-8"));
+                    fos.flush();
+                    fos.close();
+                } catch (Throwable ignored) {
+                }
+                main.post(callback::success);
+            } catch (Throwable th) {
+                th.printStackTrace();
+                if (finalCache.exists()) {
+                    try {
+                        parseJson(finalApiUrl, finalCache);
+                        main.post(callback::success);
+                        return;
+                    } catch (Throwable ignored) {
                     }
-                });
+                }
+                String msg = th.getMessage();
+                main.post(() -> callback.error(msg != null && !msg.isEmpty() ? msg : "解析配置失败"));
+            }
+        }).start();
     }
 
     public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {
@@ -356,11 +317,9 @@ public class ApiConfig {
         }
         bReader.close();
         String content = sb.toString();
-        if (!com.github.tvbox.osc.util.AES.isJson(content.trim())) {
-            content = FindResult(content, null);
-        }
-        if (content == null || !com.github.tvbox.osc.util.AES.isJson(content.trim())) {
-            throw new IllegalStateException("缓存配置无法解析为 JSON");
+        if (!looksLikeJson(content) ) {
+            String dec = FindResult(content, null);
+            if (dec != null && !dec.isEmpty()) content = dec;
         }
         parseJson(apiUrl, content);
     }
@@ -905,15 +864,13 @@ private void parseJson(String apiUrl, String jsonStr) {
     }
 
     String clanToAddress(String lanLink) {
+        // 与可工作版本 74bd837 一致：不强制百分号编码，交由本地服务按 UTF-8 路径取文件
         if (lanLink.startsWith("clan://localhost/")) {
-            String rel = lanLink.substring("clan://localhost/".length());
-            return ControlManager.get().getAddress(true) + "file/" + encodePathSegments(rel);
+            return lanLink.replace("clan://localhost/", ControlManager.get().getAddress(true) + "file/");
         } else {
             String link = lanLink.substring(7);
             int end = link.indexOf('/');
-            String host = link.substring(0, end);
-            String rel = link.substring(end + 1);
-            return "http://" + host + "/file/" + encodePathSegments(rel);
+            return "http://" + link.substring(0, end) + "/file/" + link.substring(end + 1);
         }
     }
 
