@@ -145,9 +145,6 @@ public class App extends MultiDexApplication {
         JsLoader.load();
     }
 
-    }
-
-
     private VodInfo vodInfo;
     public void setVodInfo(VodInfo vodinfo){
         this.vodInfo = vodinfo;
