@@ -169,7 +169,6 @@ public class ApiConfig {
             callback.error("-1");
             return;
         }
-        final int gen = ++loadGeneration;
         File cache = new File(App.getInstance().getFilesDir().getAbsolutePath() + "/" + MD5.encode(apiUrl));
         if (useCache && cache.exists()) {
             try {
@@ -204,64 +203,58 @@ public class ApiConfig {
         hdrs.put("Accept", requestAccept);
         final String finalApiUrl = apiUrl;
         final File finalCache = cache;
-        final String finalConfigUrl = configUrl;
-        final String finalConfigKey = configKey;
-        // 对齐可工作版本 74bd837：clan 走本地 HTTP /file/；并增加「直读文件」作为优先/回退
-        new Thread(() -> {
-            android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
-            try {
-                String result = null;
-                // 1) clan://localhost 优先直接读盘（避免服务未就绪）
-                if (finalApiUrl.startsWith("clan://localhost/")) {
-                    try {
-                        result = readClanLocalhostFile(finalApiUrl);
-                    } catch (Throwable ignored) {
-                        result = null;
+        com.github.tvbox.osc.util.NetworkClient.getStringAsync(configUrl, null, hdrs,
+                new com.github.tvbox.osc.util.NetworkClient.StringCallback() {
+                    @Override
+                    public void onSuccess(int code, String body) {
+                        try {
+                            String result = body != null ? body : "";
+                            if (configKey != null) {
+                                result = FindResult(result, configKey);
+                            } else if (!looksLikeJson(result)) {
+                                // 在线 2423 等加密源（本地明文 clan 不受影响）
+                                String dec = FindResult(result, null);
+                                if (dec != null && looksLikeJson(dec)) result = dec;
+                            }
+                            if (finalApiUrl.startsWith("clan")) {
+                                result = clanContentFix(clanToAddress(finalApiUrl), result);
+                            }
+                            result = fixContentPath(finalApiUrl, result);
+                            parseJson(finalApiUrl, result);
+                            try {
+                                File cacheDir = finalCache.getParentFile();
+                                if (!cacheDir.exists())
+                                    cacheDir.mkdirs();
+                                if (finalCache.exists())
+                                    finalCache.delete();
+                                FileOutputStream fos = new FileOutputStream(finalCache);
+                                fos.write(result.getBytes("UTF-8"));
+                                fos.flush();
+                                fos.close();
+                            } catch (Throwable th) {
+                                th.printStackTrace();
+                            }
+                            callback.success();
+                        } catch (Throwable th) {
+                            th.printStackTrace();
+                            callback.error("解析配置失败");
+                        }
                     }
-                }
-                // 2) 与 74bd837 相同：HTTP 拉取（含 clan 转 file/）
-                if (result == null || result.isEmpty()) {
-                    result = com.github.tvbox.osc.util.NetworkClient.getStringSync(finalConfigUrl, null, hdrs);
-                }
-                if (result == null) result = "";
-                if (finalConfigKey != null) {
-                    result = FindResult(result, finalConfigKey);
-                } else if (!looksLikeJson(result)) {
-                    String dec = FindResult(result, null);
-                    if (dec != null && looksLikeJson(dec)) result = dec;
-                }
-                if (finalApiUrl.startsWith("clan")) {
-                    result = clanContentFix(clanToAddress(finalApiUrl), result);
-                }
-                result = fixContentPath(finalApiUrl, result);
-                parseJson(finalApiUrl, result);
-                try {
-                    File cacheDir = finalCache.getParentFile();
-                    if (cacheDir != null && !cacheDir.exists()) cacheDir.mkdirs();
-                    if (finalCache.exists()) finalCache.delete();
-                    FileOutputStream fos = new FileOutputStream(finalCache);
-                    fos.write(result.getBytes("UTF-8"));
-                    fos.flush();
-                    fos.close();
-                } catch (Throwable ignored) {
-                }
-                if (gen != loadGeneration) return; // 已被更新的订阅请求取代
-                main.post(callback::success);
-            } catch (Throwable th) {
-                th.printStackTrace();
-                if (gen != loadGeneration) return;
-                if (finalCache.exists()) {
-                    try {
-                        parseJson(finalApiUrl, finalCache);
-                        main.post(callback::success);
-                        return;
-                    } catch (Throwable ignored) {
+
+                    @Override
+                    public void onError(Throwable e) {
+                        if (finalCache.exists()) {
+                            try {
+                                parseJson(finalApiUrl, finalCache);
+                                callback.success();
+                                return;
+                            } catch (Throwable th) {
+                                th.printStackTrace();
+                            }
+                        }
+                        callback.error("拉取配置失败\n" + (e != null && e.getMessage() != null ? e.getMessage() : ""));
                     }
-                }
-                String msg = th.getMessage();
-                main.post(() -> callback.error(msg != null && !msg.isEmpty() ? msg : "解析配置失败"));
-            }
-        }).start();
+                });
     }
 
     public void loadJar(boolean useCache, String spider, LoadConfigCallback callback) {
@@ -269,14 +262,10 @@ public class ApiConfig {
         String jarUrl = urls[0];
         String md5 = urls.length > 1 ? urls[1].trim() : "";
         File cache = new File(App.getInstance().getFilesDir().getAbsolutePath() + "/csp.jar");
-        // 切换订阅后 spider 地址变化时禁止复用旧 csp.jar（否则有站无数据）
-        if (lastLoadedSpider != null && !lastLoadedSpider.isEmpty()
-                && !jarUrl.equals(lastLoadedSpider)) {
+        // 切换订阅后 spider 变化时不复用旧 jar
+        if (lastLoadedSpider != null && !lastLoadedSpider.isEmpty() && !jarUrl.equals(lastLoadedSpider)) {
             useCache = false;
-            try {
-                if (cache.exists()) cache.delete();
-            } catch (Throwable ignored) {
-            }
+            try { if (cache.exists()) cache.delete(); } catch (Throwable ignored) {}
         }
 
         if (!md5.isEmpty() || useCache) {
@@ -330,9 +319,7 @@ public class ApiConfig {
                 fos.flush();
                 fos.close();
                 boolean ok = finalCache.exists() && jarLoader.load(finalCache.getAbsolutePath());
-                if (ok) {
-                    lastLoadedSpider = finalJarUrl;
-                }
+                if (ok) lastLoadedSpider = finalJarUrl;
                 android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
                 main.post(() -> {
                     if (ok) callback.success();
