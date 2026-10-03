@@ -139,6 +139,11 @@ public class RemoteServer extends NanoHTTPD {
                 } else if (fileName.startsWith("/file/")) {
                     try {
                         String f = fileName.substring(6);
+                        try {
+                            f = java.net.URLDecoder.decode(f, "UTF-8");
+                        } catch (Throwable ignored) {
+                        }
+                        while (f.startsWith("/")) f = f.substring(1);
                         String root = Environment.getExternalStorageDirectory().getAbsolutePath();
                         String file = root + "/" + f;
                         File localFile = new File(file);

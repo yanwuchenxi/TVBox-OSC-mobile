@@ -111,6 +111,16 @@ public class ApiConfig {
             else{
                 json = content;
             }
+            if (json != null) {
+                json = json.trim();
+                if (!json.isEmpty() && json.charAt(0) == '\ufeff') {
+                    json = json.substring(1);
+                }
+                int brace = json.indexOf('{');
+                if (brace > 0 && brace < 16) {
+                    json = json.substring(brace);
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -289,10 +299,22 @@ public class ApiConfig {
         final boolean finalIsJarInImg = isJarInImg;
         new Thread(() -> {
             try {
-                java.util.Map<String, String> hdrs = new java.util.HashMap<>();
-                hdrs.put("User-Agent", userAgent);
-                hdrs.put("Accept", requestAccept);
-                byte[] raw = com.github.tvbox.osc.util.NetworkClient.getBytesSync(finalJarUrl, hdrs);
+                byte[] raw;
+                File localJar = resolveLocalSpiderFile(finalJarUrl);
+                if (localJar != null) {
+                    java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                    java.io.FileInputStream fis = new java.io.FileInputStream(localJar);
+                    byte[] buf = new byte[8192];
+                    int n;
+                    while ((n = fis.read(buf)) > 0) bos.write(buf, 0, n);
+                    fis.close();
+                    raw = bos.toByteArray();
+                } else {
+                    java.util.Map<String, String> hdrs = new java.util.HashMap<>();
+                    hdrs.put("User-Agent", userAgent);
+                    hdrs.put("Accept", requestAccept);
+                    raw = com.github.tvbox.osc.util.NetworkClient.getBytesSync(finalJarUrl, hdrs);
+                }
                 File cacheDir = finalCache.getParentFile();
                 if (!cacheDir.exists())
                     cacheDir.mkdirs();
@@ -316,7 +338,9 @@ public class ApiConfig {
                 });
             } catch (Throwable e) {
                 e.printStackTrace();
-                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.error(""));
+                String em = e.getMessage();
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                        callback.error(em != null && !em.isEmpty() ? em : "爬虫包加载失败"));
             }
         }).start();
     }
@@ -351,6 +375,9 @@ private void parseJson(String apiUrl, String jsonStr) {
         SourceBean firstSite = null;
         if (sourceBeanList!= null)
             sourceBeanList.clear();
+        if (!infoJson.has("sites") || !infoJson.get("sites").isJsonArray()) {
+            throw new IllegalStateException("配置缺少 sites 数组");
+        }
         for (JsonElement opt : infoJson.get("sites").getAsJsonArray()) {
             JsonObject obj = (JsonObject) opt;
             SourceBean sb = new SourceBean();
@@ -879,12 +906,73 @@ private void parseJson(String apiUrl, String jsonStr) {
 
     String clanToAddress(String lanLink) {
         if (lanLink.startsWith("clan://localhost/")) {
-            return lanLink.replace("clan://localhost/", ControlManager.get().getAddress(true) + "file/");
+            String rel = lanLink.substring("clan://localhost/".length());
+            return ControlManager.get().getAddress(true) + "file/" + encodePathSegments(rel);
         } else {
             String link = lanLink.substring(7);
             int end = link.indexOf('/');
-            return "http://" + link.substring(0, end) + "/file/" + link.substring(end + 1);
+            String host = link.substring(0, end);
+            String rel = link.substring(end + 1);
+            return "http://" + host + "/file/" + encodePathSegments(rel);
         }
+    }
+
+    /** 对路径分段做 URL 编码，保留斜杠，兼容中文目录 */
+    private static String encodePathSegments(String path) {
+        if (path == null || path.isEmpty()) return "";
+        try {
+            path = java.net.URLDecoder.decode(path, "UTF-8");
+        } catch (Throwable ignored) {
+        }
+        String[] parts = path.split("/");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].isEmpty()) continue;
+            if (sb.length() > 0) sb.append('/');
+            try {
+                sb.append(java.net.URLEncoder.encode(parts[i], "UTF-8").replace("+", "%20"));
+            } catch (Throwable e) {
+                sb.append(parts[i]);
+            }
+        }
+        return sb.toString();
+    }
+
+    /** 将 jar/spider 地址解析为可读的本地文件（若适用） */
+    public static File resolveLocalSpiderFile(String jarUrl) {
+        if (jarUrl == null || jarUrl.isEmpty()) return null;
+        String u = jarUrl.trim();
+        try {
+            if (u.startsWith("clan://localhost/")) {
+                String rel = u.substring("clan://localhost/".length());
+                try { rel = java.net.URLDecoder.decode(rel, "UTF-8"); } catch (Throwable ignored) {}
+                while (rel.startsWith("/")) rel = rel.substring(1);
+                File f = new File(android.os.Environment.getExternalStorageDirectory(), rel);
+                if (f.isFile()) return f;
+                f = new File("/storage/emulated/0/" + rel);
+                return f.isFile() ? f : null;
+            }
+            // http://127.0.0.1:port/file/xxx
+            int idx = u.indexOf("/file/");
+            if (idx >= 0 && (u.contains("127.0.0.1") || u.contains("localhost"))) {
+                String rel = u.substring(idx + 6);
+                try { rel = java.net.URLDecoder.decode(rel, "UTF-8"); } catch (Throwable ignored) {}
+                while (rel.startsWith("/")) rel = rel.substring(1);
+                // strip query
+                int q = rel.indexOf('?');
+                if (q >= 0) rel = rel.substring(0, q);
+                File f = new File(android.os.Environment.getExternalStorageDirectory(), rel);
+                if (f.isFile()) return f;
+                f = new File("/storage/emulated/0/" + rel);
+                return f.isFile() ? f : null;
+            }
+            if (u.startsWith("/") && !u.startsWith("//")) {
+                File f = new File(u);
+                return f.isFile() ? f : null;
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
     }
 
     String clanContentFix(String lanLink, String content) {
