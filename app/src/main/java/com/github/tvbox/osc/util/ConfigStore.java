@@ -12,21 +12,50 @@ import com.orhanobut.hawk.Hawk;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
- * 配置存储试点：SharedPreferences + Gson，读写订阅列表与 API 地址。
- * 启动时从 Hawk 迁移一次；写入时双写 Hawk，保证旧代码可读。
- * 后续可平滑替换为 DataStore Preferences。
+ * 配置存储：SharedPreferences 为主，写入时双写 Hawk，保证过渡期兼容。
+ * 常用键可通过 put/get 系列直接读写，逐步替代裸 Hawk 调用。
  */
 public final class ConfigStore {
     private static final String PREF = "tvbox_config_v1";
     private static final String KEY_API = "api_url";
     private static final String KEY_SUBS = "subscriptions_json";
     private static final String KEY_MIGRATED = "migrated_from_hawk";
+    private static final String KEY_COMMON_MIGRATED = "common_keys_migrated_v2";
 
     private static SharedPreferences sp;
     private static final Gson GSON = new Gson();
-    private static final Type SUB_LIST_TYPE = new TypeToken<ArrayList<Subscription>>() {}.getType();
+    private static final Type SUB_LIST_TYPE = new TypeToken<ArrayList<Subscription>>() {
+    }.getType();
+
+    /** 第二批从 Hawk 迁入的常用配置键 */
+    private static final String[] COMMON_KEYS = new String[]{
+            HawkConfig.HOME_REC,
+            HawkConfig.PLAY_TYPE,
+            HawkConfig.PLAY_RENDER,
+            HawkConfig.PLAY_SCALE,
+            HawkConfig.IJK_CODEC,
+            HawkConfig.DOH_URL,
+            HawkConfig.LIVE_URL,
+            HawkConfig.THEME_TAG,
+            HawkConfig.BACKGROUND_PLAY_TYPE,
+            HawkConfig.VIDEO_PURIFY_LEVEL,
+            HawkConfig.VIDEO_PURIFY,
+            HawkConfig.PRIVATE_BROWSING,
+            HawkConfig.DEBUG_OPEN,
+            HawkConfig.HISTORY_NUM,
+            HawkConfig.IJK_CACHE_PLAY,
+            HawkConfig.VIDEO_SPEED,
+            HawkConfig.LIVE_CHANNEL_REVERSE,
+            HawkConfig.LIVE_CROSS_GROUP,
+            HawkConfig.LIVE_SHOW_TIME,
+            HawkConfig.LIVE_SHOW_NET_SPEED,
+            HawkConfig.LIVE_CONNECT_TIMEOUT,
+            HawkConfig.FAST_SEARCH_MODE,
+            HawkConfig.SHOW_PREVIEW,
+    };
 
     private ConfigStore() {
     }
@@ -35,6 +64,7 @@ public final class ConfigStore {
         if (sp != null) return;
         sp = context.getApplicationContext().getSharedPreferences(PREF, Context.MODE_PRIVATE);
         migrateFromHawkIfNeeded();
+        migrateCommonKeysIfNeeded();
     }
 
     private static void ensure() {
@@ -57,6 +87,38 @@ public final class ConfigStore {
         } catch (Throwable ignored) {
         }
         sp.edit().putBoolean(KEY_MIGRATED, true).apply();
+    }
+
+    private static void migrateCommonKeysIfNeeded() {
+        if (sp.getBoolean(KEY_COMMON_MIGRATED, false)) return;
+        SharedPreferences.Editor ed = sp.edit();
+        for (String key : COMMON_KEYS) {
+            if (sp.contains(key)) continue;
+            try {
+                if (!Hawk.contains(key)) continue;
+                Object v = Hawk.get(key);
+                if (v == null) continue;
+                if (v instanceof Boolean) {
+                    ed.putBoolean(key, (Boolean) v);
+                } else if (v instanceof Integer) {
+                    ed.putInt(key, (Integer) v);
+                } else if (v instanceof Long) {
+                    ed.putLong(key, (Long) v);
+                } else if (v instanceof Float) {
+                    ed.putFloat(key, (Float) v);
+                } else if (v instanceof String) {
+                    ed.putString(key, (String) v);
+                } else if (v instanceof Set) {
+                    //noinspection unchecked
+                    ed.putStringSet(key, (Set<String>) v);
+                } else {
+                    ed.putString(key, String.valueOf(v));
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        ed.putBoolean(KEY_COMMON_MIGRATED, true);
+        ed.apply();
     }
 
     public static String getApiUrl() {
@@ -103,5 +165,83 @@ public final class ConfigStore {
     public static boolean hasApiUrl() {
         ensure();
         return !TextUtils.isEmpty(getApiUrl());
+    }
+
+    // ---------- 通用读写（双写 Hawk） ----------
+
+    public static int getInt(String key, int def) {
+        ensure();
+        if (sp.contains(key)) return sp.getInt(key, def);
+        try {
+            return Hawk.get(key, def);
+        } catch (Throwable e) {
+            return def;
+        }
+    }
+
+    public static void putInt(String key, int value) {
+        ensure();
+        sp.edit().putInt(key, value).apply();
+        try {
+            Hawk.put(key, value);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    public static boolean getBool(String key, boolean def) {
+        ensure();
+        if (sp.contains(key)) return sp.getBoolean(key, def);
+        try {
+            return Hawk.get(key, def);
+        } catch (Throwable e) {
+            return def;
+        }
+    }
+
+    public static void putBool(String key, boolean value) {
+        ensure();
+        sp.edit().putBoolean(key, value).apply();
+        try {
+            Hawk.put(key, value);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    public static String getString(String key, String def) {
+        ensure();
+        if (sp.contains(key)) return sp.getString(key, def);
+        try {
+            return Hawk.get(key, def);
+        } catch (Throwable e) {
+            return def;
+        }
+    }
+
+    public static void putString(String key, String value) {
+        ensure();
+        sp.edit().putString(key, value != null ? value : "").apply();
+        try {
+            Hawk.put(key, value);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    public static float getFloat(String key, float def) {
+        ensure();
+        if (sp.contains(key)) return sp.getFloat(key, def);
+        try {
+            return Hawk.get(key, def);
+        } catch (Throwable e) {
+            return def;
+        }
+    }
+
+    public static void putFloat(String key, float value) {
+        ensure();
+        sp.edit().putFloat(key, value).apply();
+        try {
+            Hawk.put(key, value);
+        } catch (Throwable ignored) {
+        }
     }
 }

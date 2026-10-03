@@ -29,7 +29,8 @@
 - [x] ApiConfig loadConfig/loadJar 改用 NetworkClient（已无 OkGo）
 - [x] SourceViewModel **全部** HTTP（sort/list/detail/search/play）改用 httpGet/NetworkClient，已无 OkGo
 - [x] 配置试点：`ConfigStore`（SharedPreferences + Gson，订阅/API；Hawk 双写 + 启动迁移）
-- [ ] 其余 Hawk 键逐步迁入 ConfigStore / DataStore
+- [x] ConfigStore 通用 get/put + 常用键启动迁移；SettingActivity 设置项改走 ConfigStore
+- [ ] 播放器/直播等其余 Hawk 调用继续切换
 
 ### 工程
 - [ ] AGP 8 + Kotlin 1.9 + OkHttp 4（未做，避免大版本一次翻车）
@@ -39,7 +40,7 @@
 - [x] Backup/QuickSearch/SearchSubtitle/SearchCheckbox/GridFilter/LiveSetting 对话框 + Detail 布局管理器改标准 RecyclerView
 - [x] Live / GridFragment / VodController / LocalVideoController / FastSearch 布局与代码改标准 RecyclerView
 - [x] LinearSpacingItemDecoration 改用 androidx GridLayoutManager
-- [ ] 可择机移除 `tv-recyclerview` Gradle 依赖
+- [x] 已移除 `tv-recyclerview` Gradle 依赖
 
 ### 功能
 - [x] 站点检测增强内容特征判断（非仅 HTTP 状态）

@@ -183,7 +183,7 @@ dependencies {
 
     implementation 'com.lzy.net:okgo:3.0.4'
     // implementation 'com.tencent.bugly:crashreport_upgrade:latest.release'
-    implementation 'com.owen:tv-recyclerview:3.0.0'
+    // tv-recyclerview removed: all lists use androidx RecyclerView
 
     implementation 'com.github.getActivity:XXPermissions:13.6'
     implementation 'org.jsoup:jsoup:1.14.1'
