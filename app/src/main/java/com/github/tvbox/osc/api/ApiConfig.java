@@ -158,7 +158,7 @@ public class ApiConfig {
         } else if (apiUrl.startsWith("clan")) {
             configUrl = clanToAddress(apiUrl);
         } else if (!apiUrl.startsWith("http")) {
-            configUrl = "http://" + configUrl;
+            configUrl = "http://" + apiUrl;
         } else {
             configUrl = apiUrl;
         }
@@ -174,8 +174,12 @@ public class ApiConfig {
                     public void onSuccess(int code, String body) {
                         try {
                             String result = body != null ? body : "";
-                            if (configKey != null) {
+                            // 加密源（2423 / Base64** 等）即使 URL 无 ;pk; 也尝试解密
+                            if (!com.github.tvbox.osc.util.AES.isJson(result.trim())) {
                                 result = FindResult(result, configKey);
+                            }
+                            if (result == null || !com.github.tvbox.osc.util.AES.isJson(result.trim())) {
+                                throw new IllegalStateException("配置不是合法 JSON（加密源解密失败或内容损坏）");
                             }
                             if (finalApiUrl.startsWith("clan")) {
                                 result = clanContentFix(clanToAddress(finalApiUrl), result);
@@ -198,7 +202,12 @@ public class ApiConfig {
                             callback.success();
                         } catch (Throwable th) {
                             th.printStackTrace();
-                            callback.error("解析配置失败");
+                            try {
+                                if (finalCache.exists()) finalCache.delete();
+                            } catch (Throwable ignored) {
+                            }
+                            String msg = th.getMessage();
+                            callback.error(msg != null && msg.length() > 0 ? msg : "解析配置失败");
                         }
                     }
 
@@ -274,19 +283,27 @@ public class ApiConfig {
         }).start();
     }
 
-    private void parseJson(String apiUrl, File f) throws Throwable {
+        private void parseJson(String apiUrl, File f) throws Throwable {
         System.out.println("从本地缓存加载" + f.getAbsolutePath());
         BufferedReader bReader = new BufferedReader(new InputStreamReader(new FileInputStream(f), "UTF-8"));
         StringBuilder sb = new StringBuilder();
         String s = "";
         while ((s = bReader.readLine()) != null) {
-            sb.append(s + "\n");
+            sb.append(s + "
+");
         }
         bReader.close();
-        parseJson(apiUrl, sb.toString());
+        String content = sb.toString();
+        if (!com.github.tvbox.osc.util.AES.isJson(content.trim())) {
+            content = FindResult(content, null);
+        }
+        if (content == null || !com.github.tvbox.osc.util.AES.isJson(content.trim())) {
+            throw new IllegalStateException("缓存配置无法解析为 JSON");
+        }
+        parseJson(apiUrl, content);
     }
 
-    private void parseJson(String apiUrl, String jsonStr) {
+private void parseJson(String apiUrl, String jsonStr) {
         JsonObject infoJson = new Gson().fromJson(jsonStr, JsonObject.class);
         // spider
         spider = DefaultConfig.safeJsonString(infoJson, "spider", "");

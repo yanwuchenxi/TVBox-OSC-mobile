@@ -64,15 +64,30 @@ public class SubscriptionHealthChecker {
             NetworkClient.getStringAsync(url, "TVBoxMobile", new NetworkClient.StringCallback() {
                 @Override
                 public void onSuccess(int code, String body) {
-                    if (body != null && body.length() > 20
-                            && (body.contains("{") || body.contains("urls") || body.contains("sites"))) {
+                    String text = body != null ? body : "";
+                    // 支持 2423 等加密源：解密后再判断是否含 sites
+                    if (!AES.isJson(text.trim()) && text.length() > 10) {
+                        try {
+                            String dec = com.github.tvbox.osc.api.ApiConfig.FindResult(text, null);
+                            if (dec != null && !dec.isEmpty()) text = dec;
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                    boolean hasSites = text.contains(""sites"") || text.contains("sites");
+                    boolean isJson = AES.isJson(text.trim());
+                    if (isJson && hasSites) {
                         item.setHealthStatus(Subscription.STATUS_OK);
-                        item.setHealthMsg("有效");
+                        item.setHealthMsg("有效(含站点)");
                         ok.incrementAndGet();
-                    } else if (code >= 200 && code < 400) {
+                    } else if (isJson) {
                         item.setHealthStatus(Subscription.STATUS_OK);
-                        item.setHealthMsg("可访问");
+                        item.setHealthMsg("有效(无sites字段)");
                         ok.incrementAndGet();
+                    } else if (code >= 200 && code < 400 && text.length() > 20) {
+                        // 可下载但无法解密/解析为 JSON
+                        item.setHealthStatus(Subscription.STATUS_FAIL);
+                        item.setHealthMsg("可访问但无法解析站点");
+                        fail.incrementAndGet();
                     } else {
                         item.setHealthStatus(Subscription.STATUS_FAIL);
                         item.setHealthMsg("内容异常");
