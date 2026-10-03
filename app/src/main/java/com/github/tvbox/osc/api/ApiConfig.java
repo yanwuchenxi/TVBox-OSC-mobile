@@ -203,16 +203,72 @@ public class ApiConfig {
         hdrs.put("Accept", requestAccept);
         final String finalApiUrl = apiUrl;
         final File finalCache = cache;
+        final String finalConfigUrl = configUrl;
+        final String finalConfigKey = configKey;
+
+        // clan://localhost 不依赖 127.0.0.1:9978：直读磁盘（服务未启动会 Failed to connect）
+        if (apiUrl.startsWith("clan://localhost/")) {
+            new Thread(() -> {
+                android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
+                try {
+                    // 尽量启动本地服务，供后续相对 jar 的 HTTP 回退使用
+                    try {
+                        com.github.tvbox.osc.server.ControlManager.get().startServer();
+                    } catch (Throwable ignored) {
+                    }
+                    String result = readClanLocalhostFile(finalApiUrl);
+                    if (result == null) result = "";
+                    if (finalConfigKey != null) {
+                        result = FindResult(result, finalConfigKey);
+                    } else if (!looksLikeJson(result)) {
+                        String dec = FindResult(result, null);
+                        if (dec != null && looksLikeJson(dec)) result = dec;
+                    }
+                    try {
+                        result = clanContentFix(clanToAddress(finalApiUrl), result);
+                    } catch (Throwable ignored) {
+                        // 服务地址不可用时跳过 clan 前缀替换，仍靠 fixContentPath + 本地 jar 解析
+                    }
+                    result = fixContentPath(finalApiUrl, result);
+                    parseJson(finalApiUrl, result);
+                    try {
+                        File cacheDir = finalCache.getParentFile();
+                        if (cacheDir != null && !cacheDir.exists()) cacheDir.mkdirs();
+                        if (finalCache.exists()) finalCache.delete();
+                        FileOutputStream fos = new FileOutputStream(finalCache);
+                        fos.write(result.getBytes("UTF-8"));
+                        fos.flush();
+                        fos.close();
+                    } catch (Throwable ignored) {
+                    }
+                    main.post(callback::success);
+                } catch (Throwable th) {
+                    th.printStackTrace();
+                    if (finalCache.exists()) {
+                        try {
+                            parseJson(finalApiUrl, finalCache);
+                            main.post(callback::success);
+                            return;
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                    String msg = th.getMessage();
+                    main.post(() -> callback.error(
+                            msg != null && !msg.isEmpty() ? ("本地配置失败: " + msg) : "本地配置读取失败"));
+                }
+            }).start();
+            return;
+        }
+
         com.github.tvbox.osc.util.NetworkClient.getStringAsync(configUrl, null, hdrs,
                 new com.github.tvbox.osc.util.NetworkClient.StringCallback() {
                     @Override
                     public void onSuccess(int code, String body) {
                         try {
                             String result = body != null ? body : "";
-                            if (configKey != null) {
-                                result = FindResult(result, configKey);
+                            if (finalConfigKey != null) {
+                                result = FindResult(result, finalConfigKey);
                             } else if (!looksLikeJson(result)) {
-                                // 在线 2423 等加密源（本地明文 clan 不受影响）
                                 String dec = FindResult(result, null);
                                 if (dec != null && looksLikeJson(dec)) result = dec;
                             }
@@ -243,6 +299,7 @@ public class ApiConfig {
 
                     @Override
                     public void onError(Throwable e) {
+                        // 其它 clan 或网络失败时再尝试本地缓存
                         if (finalCache.exists()) {
                             try {
                                 parseJson(finalApiUrl, finalCache);
