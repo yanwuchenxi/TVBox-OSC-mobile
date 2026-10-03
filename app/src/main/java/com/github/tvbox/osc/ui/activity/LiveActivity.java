@@ -65,8 +65,7 @@ import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.AbsCallback;
 import com.lzy.okgo.model.Response;
 import com.orhanobut.hawk.Hawk;
-import com.owen.tvrecyclerview.widget.TvRecyclerView;
-import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -98,8 +97,8 @@ public class LiveActivity extends BaseActivity {
     public LiveChannelItemNewAdapter liveChannelItemAdapter;
 
     private LinearLayout tvRightSettingLayout;
-    private TvRecyclerView mSettingGroupView;
-    private TvRecyclerView mSettingItemView;
+    private RecyclerView mSettingGroupView;
+    private RecyclerView mSettingItemView;
     private LiveSettingGroupAdapter liveSettingGroupAdapter;
     private LiveSettingItemAdapter liveSettingItemAdapter;
     private List<LiveSettingGroup> liveSettingGroupList = new ArrayList<>();
@@ -591,7 +590,7 @@ public class LiveActivity extends BaseActivity {
 
     private void initChannelGroupView() {
         mChannelGroupView.setHasFixedSize(true);
-        mChannelGroupView.setLayoutManager(new V7LinearLayoutManager(this.mContext, 1, false));
+        mChannelGroupView.setLayoutManager(new LinearLayoutManager(this.mContext, LinearLayoutManager.VERTICAL, false));
 
         liveChannelGroupAdapter = new LiveChannelGroupNewAdapter();
         mChannelGroupView.setAdapter(liveChannelGroupAdapter);
@@ -623,7 +622,7 @@ public class LiveActivity extends BaseActivity {
 
     private void initLiveChannelView() {
         mLiveChannelView.setHasFixedSize(true);
-        mLiveChannelView.setLayoutManager(new V7LinearLayoutManager(this.mContext, 1, false));
+        mLiveChannelView.setLayoutManager(new LinearLayoutManager(this.mContext, LinearLayoutManager.VERTICAL, false));
 
         liveChannelItemAdapter = new LiveChannelItemNewAdapter();
         mLiveChannelView.setAdapter(liveChannelItemAdapter);
@@ -644,7 +643,7 @@ public class LiveActivity extends BaseActivity {
 
     private void initSettingGroupView() {
         mSettingGroupView.setHasFixedSize(true);
-        mSettingGroupView.setLayoutManager(new V7LinearLayoutManager(this.mContext, 1, false));
+        mSettingGroupView.setLayoutManager(new LinearLayoutManager(this.mContext, LinearLayoutManager.VERTICAL, false));
 
         liveSettingGroupAdapter = new LiveSettingGroupAdapter();
         mSettingGroupView.setAdapter(liveSettingGroupAdapter);
@@ -698,7 +697,7 @@ public class LiveActivity extends BaseActivity {
 
     private void initSettingItemView() {
         mSettingItemView.setHasFixedSize(true);
-        mSettingItemView.setLayoutManager(new V7LinearLayoutManager(this.mContext, 1, false));
+        mSettingItemView.setLayoutManager(new LinearLayoutManager(this.mContext, LinearLayoutManager.VERTICAL, false));
 
         liveSettingItemAdapter = new LiveSettingItemAdapter();
         mSettingItemView.setAdapter(liveSettingItemAdapter);

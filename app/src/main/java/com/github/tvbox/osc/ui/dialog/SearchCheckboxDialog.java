@@ -16,9 +16,8 @@ import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.bean.SourceBean;
 import com.github.tvbox.osc.ui.adapter.CheckboxSearchAdapter;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
-import com.owen.tvrecyclerview.widget.TvRecyclerView;
-import com.owen.tvrecyclerview.widget.V7GridLayoutManager;
-import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -73,7 +72,7 @@ public class SearchCheckboxDialog extends BaseDialog{
         });
         mGridView.setHasFixedSize(true);
 
-        mGridView.setLayoutManager(new V7GridLayoutManager(getContext(), 2));
+        mGridView.setLayoutManager(new GridLayoutManager(getContext(), 2));
         View root = findViewById(R.id.root);
         ViewGroup.LayoutParams clp = root.getLayoutParams();
         //设置跟布局为屏幕宽度

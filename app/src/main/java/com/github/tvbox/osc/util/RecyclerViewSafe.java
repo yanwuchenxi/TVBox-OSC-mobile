@@ -3,7 +3,7 @@ package com.github.tvbox.osc.util;
 import androidx.recyclerview.widget.RecyclerView;
 
 /**
- * 安全滚动：避免 TvRecyclerView / RecyclerView 在非法 position 上 smoothScroll 崩溃。
+ * 安全滚动：避免 RecyclerView / RecyclerView 在非法 position 上 smoothScroll 崩溃。
  */
 public final class RecyclerViewSafe {
     private RecyclerViewSafe() {
