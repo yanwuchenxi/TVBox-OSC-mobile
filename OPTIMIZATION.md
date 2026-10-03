@@ -46,7 +46,7 @@
 ### 功能
 - [x] 站点检测增强内容特征判断（非仅 HTTP 状态）
 - [x] DLNA Stop / Seek
-- [ ] 品牌 protocolInfo 表
+- [x] 品牌 protocolInfo 表（Samsung/LG/Sony/小米/海信/TCL）
 - [ ] 模块化 feature 拆分与 UI 测试
 
 - [x] 继续清理：HOME_API、DEFAULT_PARSE、EPG_URL、字幕、健康缓存、权限标记、直播频道播放配置等迁入 ConfigStore
@@ -59,3 +59,5 @@
 
 - [x] GridFragment：`setItemViewCacheSize(20)`
 - [x] release：`minifyEnabled` + `shrinkResources` + ProGuard 补充 keep
+
+- [x] 播放器去掉 requestFocusFromTouch（手机触控更自然）

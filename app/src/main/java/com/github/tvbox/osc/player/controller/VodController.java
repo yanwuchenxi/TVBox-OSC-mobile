@@ -426,7 +426,6 @@ public class VodController extends BaseController {
                 e.printStackTrace();
             }
             mPlayerBtn.requestFocus();
-            mPlayerBtn.requestFocusFromTouch();
         });
 
         mPlayerBtn.setOnLongClickListener(view -> {
@@ -463,7 +462,6 @@ public class VodController extends BaseController {
                             e.printStackTrace();
                         }
                         mPlayerBtn.requestFocus();
-                        mPlayerBtn.requestFocusFromTouch();
                     }
 
                     @Override
@@ -513,7 +511,6 @@ public class VodController extends BaseController {
                 e.printStackTrace();
             }
             mPlayerIJKBtn.requestFocus();
-            mPlayerIJKBtn.requestFocusFromTouch();
         });
 //        增加播放页面片头片尾时间重置
         mPlayerTimeResetBtn.setOnClickListener(v -> {

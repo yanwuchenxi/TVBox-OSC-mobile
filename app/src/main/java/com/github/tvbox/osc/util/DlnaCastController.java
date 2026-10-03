@@ -60,7 +60,7 @@ public class DlnaCastController {
                 Matcher fn = FRIENDLY.matcher(desc);
                 String deviceName = fn.find() ? fn.group(1) : "电视";
 
-                String meta = buildDidl(name, mediaUrl);
+                String meta = buildDidl(name, mediaUrl, desc);
                 String setUri = soapSetAvTransportUri(mediaUrl, meta);
                 String setResp = httpSoap(controlUrl, "urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI", setUri, 10000);
                 if (setResp == null) {
@@ -87,15 +87,10 @@ public class DlnaCastController {
         });
     }
 
-    private static String buildDidl(String title, String url) {
+    private static String buildDidl(String title, String url, String deviceDesc) {
         String safeTitle = escapeXml(title);
         String safeUrl = escapeXml(url);
-        String protocol = "http-get:*:video/mp4:*";
-        String low = url.toLowerCase(Locale.US);
-        if (low.contains(".m3u8")) protocol = "http-get:*:application/vnd.apple.mpegurl:*";
-        else if (low.contains(".mp4")) protocol = "http-get:*:video/mp4:*";
-        else if (low.contains(".mkv")) protocol = "http-get:*:video/x-matroska:*";
-        else protocol = "http-get:*:*:*";
+        String protocol = DlnaProtocolInfo.resolve(url, deviceDesc);
         return "&lt;DIDL-Lite xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot; " +
                 "xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; " +
                 "xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot;&gt;" +

@@ -394,7 +394,6 @@ public class LocalVideoController extends BaseController {
                     e.printStackTrace();
                 }
                 mPlayerBtn.requestFocus();
-                mPlayerBtn.requestFocusFromTouch();
             }
         });
 
@@ -434,7 +433,6 @@ public class LocalVideoController extends BaseController {
                                 e.printStackTrace();
                             }
                             mPlayerBtn.requestFocus();
-                            mPlayerBtn.requestFocusFromTouch();
                         }
 
                         @Override
@@ -487,7 +485,6 @@ public class LocalVideoController extends BaseController {
                     e.printStackTrace();
                 }
                 mPlayerIJKBtn.requestFocus();
-                mPlayerIJKBtn.requestFocusFromTouch();
             }
         });
 //        增加播放页面片头片尾时间重置
