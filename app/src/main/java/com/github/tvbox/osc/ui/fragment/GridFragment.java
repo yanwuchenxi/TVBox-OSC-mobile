@@ -174,6 +174,7 @@ public class GridFragment extends BaseLazyFragment {
             mGridView.setVisibility(View.VISIBLE);
         }
         mGridView.setHasFixedSize(true);
+        mGridView.setItemViewCacheSize(20);
         gridAdapter = new GridAdapter();
         this.page =1;
         this.maxPage =1;

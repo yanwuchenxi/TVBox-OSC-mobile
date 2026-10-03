@@ -112,7 +112,10 @@ android {
             if (file('../TVBoxOSC.jks').exists()) {
                 signingConfig signingConfigs.config
             }
-            minifyEnabled false
+            // 开启混淆与资源压缩；调试包仍不混淆
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 

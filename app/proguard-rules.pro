@@ -230,3 +230,22 @@
   public static * bind(android.view.View);
 }
 
+
+
+# ---- TVBox mobile additions ----
+-keep class com.github.tvbox.osc.util.ConfigStore { *; }
+-keep class com.github.tvbox.osc.util.HawkConfig { *; }
+-keep class com.github.tvbox.osc.util.NetworkClient { *; }
+-keep class com.github.tvbox.osc.bean.** { *; }
+-keep class com.github.tvbox.osc.api.** { *; }
+-keep class com.github.catvod.crawler.** { *; }
+-keep class com.github.tvbox.osc.util.js.** { *; }
+-keep class com.whl.quickjs.** { *; }
+-dontwarn com.whl.quickjs.**
+-keep class com.chaquo.python.** { *; }
+-dontwarn com.chaquo.python.**
+-keep class org.nanohttpd.** { *; }
+-keep class com.google.gson.** { *; }
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
