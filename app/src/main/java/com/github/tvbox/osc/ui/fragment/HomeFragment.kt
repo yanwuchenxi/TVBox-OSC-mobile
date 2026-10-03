@@ -139,9 +139,13 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
         showLoading()
         when{
             dataInitOk && jarInitOk -> {
-                //正常初始化会先加载,最终到这,此时数据有以下几种情况
-                // 1. api/jar/spider等均加载完,正常显示数据。2. 缺失spider(存疑?)/api配置有问题同样加载(最后空布局 或 只有豆瓣首页)
-                sourceViewModel?.getSort(ApiConfig.get().homeSourceBean.key)
+                val homeKey = ApiConfig.get().homeSourceBean?.key
+                if (homeKey.isNullOrEmpty()) {
+                    showSuccess()
+                    ToastUtils.showShort("当前订阅无可用站点")
+                } else {
+                    sourceViewModel?.getSort(homeKey)
+                }
             }
             dataInitOk && !jarInitOk -> {
                 loadJar()

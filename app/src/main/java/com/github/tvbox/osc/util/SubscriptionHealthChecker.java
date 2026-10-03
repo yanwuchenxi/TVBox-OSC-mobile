@@ -3,15 +3,19 @@ package com.github.tvbox.osc.util;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.github.tvbox.osc.api.ApiConfig;
 import com.github.tvbox.osc.bean.Subscription;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 对订阅地址做轻量可达性检测。网络走 NetworkClient。
+ * 订阅可达性检测。UA 必须与 ApiConfig 一致（部分源按 UA 返回 JSON 或 HTML）。
  */
 public class SubscriptionHealthChecker {
+
+    /** 与 ApiConfig.userAgent 保持一致，避免摸鱼等源返回 HTML 落地页 */
+    private static final String UA = "okhttp/3.15";
 
     public interface Callback {
         void onOneFinished(Subscription item, int index);
@@ -88,26 +92,35 @@ public class SubscriptionHealthChecker {
                 continue;
             }
 
-            NetworkClient.getStringAsync(url, "TVBoxMobile", new NetworkClient.StringCallback() {
+            NetworkClient.getStringAsync(url, UA, new NetworkClient.StringCallback() {
                 @Override
                 public void onSuccess(int code, String body) {
-                    String text = body != null ? body : "";
-                    if (!AES.isJson(text.trim()) && text.length() > 10) {
+                    String text = body != null ? body.trim() : "";
+                    // 部分源对非 okhttp UA 返回 HTML
+                    if (text.regionMatches(true, 0, "<!DOCTYPE", 0, 9)
+                            || text.regionMatches(true, 0, "<html", 0, 5)) {
+                        item.setHealthStatus(Subscription.STATUS_FAIL);
+                        item.setHealthMsg("返回网页非配置(请检查UA)");
+                        fail.incrementAndGet();
+                        doneOne(main, callback, item, index, left, ok, fail);
+                        return;
+                    }
+                    if (!ApiConfig.looksLikeJson(text) && text.length() > 10) {
                         try {
-                            String dec = com.github.tvbox.osc.api.ApiConfig.FindResult(text, null);
-                            if (dec != null && !dec.isEmpty()) text = dec;
+                            String dec = ApiConfig.FindResult(text, null);
+                            if (dec != null && !dec.isEmpty()) text = dec.trim();
                         } catch (Throwable ignored) {
                         }
                     }
-                    boolean hasSites = text.contains("sites");
-                    boolean isJson = AES.isJson(text.trim());
+                    boolean hasSites = text.contains("\"sites\"") || text.contains("sites");
+                    boolean isJson = ApiConfig.looksLikeJson(text);
                     if (isJson && hasSites) {
                         item.setHealthStatus(Subscription.STATUS_OK);
                         item.setHealthMsg("有效(含站点)");
                         ok.incrementAndGet();
                     } else if (isJson) {
                         item.setHealthStatus(Subscription.STATUS_OK);
-                        item.setHealthMsg("有效(无sites字段)");
+                        item.setHealthMsg("有效(JSON)");
                         ok.incrementAndGet();
                     } else if (code >= 200 && code < 400 && text.length() > 20) {
                         item.setHealthStatus(Subscription.STATUS_FAIL);
@@ -121,6 +134,7 @@ public class SubscriptionHealthChecker {
                     doneOne(main, callback, item, index, left, ok, fail);
                 }
 
+                @Override
                 public void onError(Throwable e) {
                     item.setHealthStatus(Subscription.STATUS_FAIL);
                     String msg = e != null ? e.getMessage() : "请求失败";
@@ -144,6 +158,5 @@ public class SubscriptionHealthChecker {
     }
 
     public static void cancel() {
-        // NetworkClient 使用短生命周期请求，暂无全局 tag 取消
     }
 }

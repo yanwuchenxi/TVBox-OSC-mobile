@@ -596,8 +596,11 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
             com.github.tvbox.osc.util.HealthCheckCache.invalidate(HawkConfig.SOURCE_HEALTH_TS)
             com.github.tvbox.osc.util.HealthCheckCache.invalidate(HawkConfig.SUB_HEALTH_TS)
             ToastUtils.showShort("正在应用新订阅…")
+            // NEW_TASK|CLEAR_TASK 完整重建，避免切换订阅后旧实例残留导致崩溃
             val intent = Intent(this, MainActivity::class.java)
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            // 强制重新拉配置与 spider，禁止用旧 jar 缓存
+            intent.putExtra(com.github.tvbox.osc.constant.IntentKey.CACHE_CONFIG_CHANGED, false)
             startActivity(intent)
             overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
         }

@@ -63,6 +63,9 @@ public class ApiConfig {
     private SourceBean emptyHome = new SourceBean();
 
     private final SpiderFactory spiderFactory = new SpiderFactory();
+    private volatile int loadGeneration = 0;
+    private String lastLoadedSpider = "";
+
     private JarLoader jarLoader;
     private JsLoader jsLoader;
 
@@ -166,6 +169,7 @@ public class ApiConfig {
             callback.error("-1");
             return;
         }
+        final int gen = ++loadGeneration;
         File cache = new File(App.getInstance().getFilesDir().getAbsolutePath() + "/" + MD5.encode(apiUrl));
         if (useCache && cache.exists()) {
             try {
@@ -241,9 +245,11 @@ public class ApiConfig {
                     fos.close();
                 } catch (Throwable ignored) {
                 }
+                if (gen != loadGeneration) return; // 已被更新的订阅请求取代
                 main.post(callback::success);
             } catch (Throwable th) {
                 th.printStackTrace();
+                if (gen != loadGeneration) return;
                 if (finalCache.exists()) {
                     try {
                         parseJson(finalApiUrl, finalCache);
@@ -263,10 +269,20 @@ public class ApiConfig {
         String jarUrl = urls[0];
         String md5 = urls.length > 1 ? urls[1].trim() : "";
         File cache = new File(App.getInstance().getFilesDir().getAbsolutePath() + "/csp.jar");
+        // 切换订阅后 spider 地址变化时禁止复用旧 csp.jar（否则有站无数据）
+        if (lastLoadedSpider != null && !lastLoadedSpider.isEmpty()
+                && !jarUrl.equals(lastLoadedSpider)) {
+            useCache = false;
+            try {
+                if (cache.exists()) cache.delete();
+            } catch (Throwable ignored) {
+            }
+        }
 
         if (!md5.isEmpty() || useCache) {
             if (cache.exists() && (useCache || MD5.getFileMd5(cache).equalsIgnoreCase(md5))) {
                 if (jarLoader.load(cache.getAbsolutePath())) {
+                    lastLoadedSpider = jarUrl;
                     callback.success();
                 } else {
                     callback.error("");
@@ -314,6 +330,9 @@ public class ApiConfig {
                 fos.flush();
                 fos.close();
                 boolean ok = finalCache.exists() && jarLoader.load(finalCache.getAbsolutePath());
+                if (ok) {
+                    lastLoadedSpider = finalJarUrl;
+                }
                 android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
                 main.post(() -> {
                     if (ok) callback.success();
