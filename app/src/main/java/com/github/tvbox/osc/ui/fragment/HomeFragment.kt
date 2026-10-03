@@ -42,8 +42,6 @@ import com.github.tvbox.osc.util.HawkConfig
 import com.github.tvbox.osc.viewmodel.SourceViewModel
 import com.lxj.xpopup.XPopup
 import com.orhanobut.hawk.Hawk
-import com.owen.tvrecyclerview.widget.TvRecyclerView
-import com.owen.tvrecyclerview.widget.V7GridLayoutManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -330,8 +328,9 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
         val sites = ApiConfig.get().sourceBeanList
         if (sites.size > 0) {
             val dialog = SelectDialog<SourceBean>(requireActivity())
-            val tvRecyclerView = dialog.findViewById<TvRecyclerView>(R.id.list)
-            tvRecyclerView.setLayoutManager(V7GridLayoutManager(dialog.context, 2))
+            // dialog_select 已是标准 RecyclerView，勿强转 TvRecyclerView
+            val listView = dialog.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.list)
+            listView?.layoutManager = androidx.recyclerview.widget.GridLayoutManager(dialog.context, 2)
             dialog.setTip("请选择首页数据源")
             dialog.setAdapter(object : SelectDialogInterface<SourceBean?> {
                 override fun click(value: SourceBean?, pos: Int) {
