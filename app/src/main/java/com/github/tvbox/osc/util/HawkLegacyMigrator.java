@@ -108,7 +108,7 @@ public final class HawkLegacyMigrator {
         if (v instanceof String) {
             try {
                 String s = ((String) v).trim();
-                if (s.startsWith(""") && s.endsWith(""")) {
+                if (s.length() >= 2 && s.charAt(0) == '"' && s.charAt(s.length() - 1) == '"') {
                     s = s.substring(1, s.length() - 1);
                 }
                 return Integer.parseInt(s);
