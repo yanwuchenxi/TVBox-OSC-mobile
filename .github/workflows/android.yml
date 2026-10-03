@@ -35,7 +35,7 @@ jobs:
       - name: Install SDK packages
         run: |
           yes | sdkmanager --sdk_root=$ANDROID_HOME --licenses >/tmp/sdk-licenses.txt || true
-          sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -84,8 +84,8 @@ jobs:
       - name: Install SDK packages
         run: |
           yes | sdkmanager --sdk_root=$ANDROID_HOME --licenses >/tmp/sdk-licenses.txt || true
-          sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;23.1.7779620" || \
-          sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;23.1.7779620" || \
+          sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
       - name: Make gradlew executable
         run: chmod +x gradlew

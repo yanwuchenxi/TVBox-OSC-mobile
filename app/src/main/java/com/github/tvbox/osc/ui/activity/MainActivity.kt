@@ -13,7 +13,6 @@ import com.github.tvbox.osc.databinding.ActivityMainBinding
 import com.github.tvbox.osc.ui.fragment.GridFragment
 import com.github.tvbox.osc.ui.fragment.HomeFragment
 import com.github.tvbox.osc.ui.fragment.MyFragment
-import com.github.tvbox.osc.util.PermissionHelper
 import kotlin.system.exitProcess
 
 class MainActivity : BaseVbActivity<ActivityMainBinding>() {
@@ -25,8 +24,6 @@ class MainActivity : BaseVbActivity<ActivityMainBinding>() {
     override fun init() {
 
         useCacheConfig = intent.extras?.getBoolean(IntentKey.CACHE_CONFIG_CHANGED, false)?:false
-        // targetSdk 34：通知 + 媒体读取（仅首次）
-        mBinding.root.post { PermissionHelper.requestStartupPermissions(this) }
 
         mBinding.vp.adapter = object : FragmentPagerAdapter(supportFragmentManager) {
             override fun getItem(position: Int): Fragment {

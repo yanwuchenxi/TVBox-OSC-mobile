@@ -33,13 +33,13 @@ import com.github.tvbox.osc.ui.adapter.SelectDialogAdapter;
 import com.github.tvbox.osc.ui.dialog.SelectDialog;
 import com.github.tvbox.osc.ui.widget.MyBatteryView;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
-import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.PlayerHelper;
 import com.github.tvbox.osc.util.ScreenUtils;
 import com.github.tvbox.osc.util.SubtitleHelper;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import com.orhanobut.hawk.Hawk;
+import com.owen.tvrecyclerview.widget.TvRecyclerView;
+import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
@@ -394,6 +394,7 @@ public class LocalVideoController extends BaseController {
                     e.printStackTrace();
                 }
                 mPlayerBtn.requestFocus();
+                mPlayerBtn.requestFocusFromTouch();
             }
         });
 
@@ -433,6 +434,7 @@ public class LocalVideoController extends BaseController {
                                 e.printStackTrace();
                             }
                             mPlayerBtn.requestFocus();
+                            mPlayerBtn.requestFocusFromTouch();
                         }
 
                         @Override
@@ -485,6 +487,7 @@ public class LocalVideoController extends BaseController {
                     e.printStackTrace();
                 }
                 mPlayerIJKBtn.requestFocus();
+                mPlayerIJKBtn.requestFocusFromTouch();
             }
         });
 //        增加播放页面片头片尾时间重置
@@ -910,7 +913,7 @@ public class LocalVideoController extends BaseController {
     public void onLongPress(MotionEvent e) {
         if (videoPlayState != VideoView.STATE_PAUSED) {
             fromLongPress = true;
-            float speed = ConfigStore.getFloat(HawkConfig.VIDEO_SPEED, 2.0f);
+            float speed = Hawk.get(HawkConfig.VIDEO_SPEED, 2.0f);
             mControlWrapper.setSpeed(speed);
             mLlSpeed.setVisibility(VISIBLE);
             mTvSpeedTip.setText(speed + "x");

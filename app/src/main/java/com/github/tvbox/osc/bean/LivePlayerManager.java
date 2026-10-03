@@ -4,9 +4,9 @@ import androidx.annotation.NonNull;
 import androidx.exifinterface.media.ExifInterface;
 
 import com.github.tvbox.osc.api.ApiConfig;
-import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.PlayerHelper;
+import com.orhanobut.hawk.Hawk;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,10 +22,10 @@ public class LivePlayerManager {
 
     public void init(VideoView videoView) {
         try {
-            defaultPlayerConfig.put("pl", ConfigStore.getInt(HawkConfig.PLAY_TYPE, 0));
-            defaultPlayerConfig.put("ijk", ConfigStore.getString(HawkConfig.IJK_CODEC, "软解码"));
-            defaultPlayerConfig.put("pr", ConfigStore.getInt(HawkConfig.PLAY_RENDER, 0));
-            defaultPlayerConfig.put("sc", ConfigStore.getInt(HawkConfig.PLAY_SCALE, 0));
+            defaultPlayerConfig.put("pl", Hawk.get(HawkConfig.PLAY_TYPE, 0));
+            defaultPlayerConfig.put("ijk", Hawk.get(HawkConfig.IJK_CODEC, "软解码"));
+            defaultPlayerConfig.put("pr", Hawk.get(HawkConfig.PLAY_RENDER, 0));
+            defaultPlayerConfig.put("sc", Hawk.get(HawkConfig.PLAY_SCALE, 0));
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -42,11 +42,7 @@ public class LivePlayerManager {
     }
 
     public void getLiveChannelPlayer(VideoView videoView, String channelName) {
-        String cfgStr = ConfigStore.getString("live_ch_" + channelName, null);
-        JSONObject playerConfig = null;
-        if (cfgStr != null && !cfgStr.isEmpty()) {
-            try { playerConfig = new JSONObject(cfgStr); } catch (Throwable ignored) {}
-        }
+        JSONObject playerConfig = Hawk.get(channelName, null);
         if (playerConfig == null) {
             if (!currentPlayerConfig.toString().equals(defaultPlayerConfig.toString()))
                 getDefaultLiveChannelPlayer(videoView);
@@ -131,9 +127,9 @@ public class LivePlayerManager {
         PlayerHelper.updateCfg(videoView, playerConfig);
 
         if (playerConfig.toString().equals(defaultPlayerConfig.toString()))
-            ConfigStore.putString("live_ch_" + channelName, "");
+            Hawk.delete(channelName);
         else
-            ConfigStore.putString("live_ch_" + channelName, playerConfig != null ? playerConfig.toString() : "");
+            Hawk.put(channelName, playerConfig);
 
         currentPlayerConfig = playerConfig;
     }
@@ -148,9 +144,9 @@ public class LivePlayerManager {
             e.printStackTrace();
         }
         if (playerConfig.toString().equals(defaultPlayerConfig.toString()))
-            ConfigStore.putString("live_ch_" + channelName, "");
+            Hawk.delete(channelName);
         else
-            ConfigStore.putString("live_ch_" + channelName, playerConfig != null ? playerConfig.toString() : "");
+            Hawk.put(channelName, playerConfig);
 
         currentPlayerConfig = playerConfig;
     }

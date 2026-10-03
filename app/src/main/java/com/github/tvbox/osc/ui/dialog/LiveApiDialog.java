@@ -13,7 +13,7 @@ import com.github.tvbox.osc.util.HawkConfig;
 import com.lxj.xpopup.XPopup;
 import com.lxj.xpopup.core.CenterPopupView;
 import com.lxj.xpopup.interfaces.OnInputConfirmListener;
-import com.github.tvbox.osc.util.ConfigStore;
+import com.orhanobut.hawk.Hawk;
 
 import java.util.ArrayList;
 
@@ -34,11 +34,11 @@ public class LiveApiDialog extends CenterPopupView {
     protected void onCreate() {
         super.onCreate();
         mBinding = DialogLiveApiBinding.bind(getPopupImplView());
-        String liveApi = ConfigStore.getString(HawkConfig.LIVE_URL, "");
+        String liveApi = Hawk.get(HawkConfig.LIVE_URL, "");
         updateEt(liveApi);
 
         mBinding.ivHistory.setOnClickListener(view -> {
-            ArrayList<String> liveHistory = ConfigStore.getStringList(HawkConfig.LIVE_HISTORY);
+            ArrayList<String> liveHistory = Hawk.get(HawkConfig.LIVE_HISTORY, new ArrayList<String>());
             if (liveHistory.isEmpty()){
                 ToastUtils.showShort("暂无历史记录");
                 return;
@@ -52,14 +52,14 @@ public class LiveApiDialog extends CenterPopupView {
         mBinding.btnConfirm.setOnClickListener(view -> {
             String newLive = mBinding.etUrl.getText().toString().trim();
             // Capture Live input into Settings & Live History (max 20)
-            ConfigStore.putString(HawkConfig.LIVE_URL, newLive);
+            Hawk.put(HawkConfig.LIVE_URL, newLive);
             if (!newLive.isEmpty()) {
-                ArrayList<String> liveHistory = ConfigStore.getStringList(HawkConfig.LIVE_HISTORY);
+                ArrayList<String> liveHistory = Hawk.get(HawkConfig.LIVE_HISTORY, new ArrayList<String>());
                 if (!liveHistory.contains(newLive))
                     liveHistory.add(0, newLive);
                 if (liveHistory.size() > 20)
                     liveHistory.remove(20);
-                ConfigStore.putStringList(HawkConfig.LIVE_HISTORY, liveHistory);
+                Hawk.put(HawkConfig.LIVE_HISTORY, liveHistory);
             }
             ToastUtils.showShort("设置成功");
             dismiss();

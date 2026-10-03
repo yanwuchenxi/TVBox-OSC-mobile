@@ -64,7 +64,6 @@ import com.github.tvbox.osc.ui.dialog.VideoDetailDialog;
 import com.github.tvbox.osc.ui.fragment.PlayFragment;
 import com.github.tvbox.osc.ui.widget.LinearSpacingItemDecoration;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
-import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.ScreenShotListenManager;
 import com.github.tvbox.osc.util.SearchHelper;
@@ -82,7 +81,8 @@ import com.lxj.xpopup.interfaces.OnSelectListener;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.AbsCallback;
 import com.lzy.okgo.model.Response;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import com.orhanobut.hawk.Hawk;
+import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -164,12 +164,12 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     }
 
     private void initView() {
-        mBinding.ivPrivateBrowsing.setVisibility(ConfigStore.getBool(HawkConfig.PRIVATE_BROWSING, false) ? View.VISIBLE : View.GONE);
+        mBinding.ivPrivateBrowsing.setVisibility(Hawk.get(HawkConfig.PRIVATE_BROWSING, false) ? View.VISIBLE : View.GONE);
         mBinding.ivPrivateBrowsing.setOnClickListener(view -> ToastUtils.showShort("当前为无痕浏览"));
         mBinding.previewPlayerPlace.setVisibility(showPreview ? View.VISIBLE : View.GONE);
 
         mBinding.mGridView.setHasFixedSize(true);
-        mBinding.mGridView.setLayoutManager(new LinearLayoutManager(this.mContext, LinearLayoutManager.HORIZONTAL, false));
+        mBinding.mGridView.setLayoutManager(new V7LinearLayoutManager(this.mContext, 0, false));
         mBinding.mGridView.addItemDecoration(new LinearSpacingItemDecoration(20, false));
 
         seriesAdapter = new SeriesAdapter(false);
@@ -291,7 +291,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
                 public void onReceive(Context context, Intent intent) {
                     String action = intent.getAction();
                     if (action != null && action.equals(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)) {
-                        openBackgroundPlay = ConfigStore.getInt(HawkConfig.BACKGROUND_PLAY_TYPE, 0) == 1 && playFragment.getPlayer() != null && playFragment.getPlayer().isPlaying();
+                        openBackgroundPlay = Hawk.get(HawkConfig.BACKGROUND_PLAY_TYPE, 0) == 1 && playFragment.getPlayer() != null && playFragment.getPlayer().isPlaying();
                     }
                 }
             };
@@ -726,7 +726,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
     }
 
     private void insertVod(String sourceKey, VodInfo vodInfo) {
-        if (ConfigStore.getBool(HawkConfig.PRIVATE_BROWSING, false)) {//无痕浏览
+        if (Hawk.get(HawkConfig.PRIVATE_BROWSING, false)) {//无痕浏览
             return;
         }
         try {
@@ -796,7 +796,7 @@ public class DetailActivity extends BaseVbActivity<ActivityDetailBinding> {
 
     // preview
     VodInfo previewVodInfo = null;
-    boolean showPreview = ConfigStore.getBool(HawkConfig.SHOW_PREVIEW, true);
+    boolean showPreview = Hawk.get(HawkConfig.SHOW_PREVIEW, true);
     ; // true 开启 false 关闭
     boolean fullWindows = false;
     ViewGroup.LayoutParams windowsPreview = null;

@@ -17,6 +17,7 @@ import com.github.tvbox.osc.base.App;
 import com.github.tvbox.osc.data.AppDataManager;
 import com.github.tvbox.osc.ui.adapter.TitleWithDelAdapter;
 import com.github.tvbox.osc.util.FileUtils;
+import com.owen.tvrecyclerview.widget.TvRecyclerView;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
@@ -35,10 +36,9 @@ public class BackupDialog extends BaseDialog {
     public BackupDialog(@NonNull @NotNull Context context) {
         super(context);
         setContentView(R.layout.dialog_backup);
-        androidx.recyclerview.widget.RecyclerView recyclerView = findViewById(R.id.list);
-        recyclerView.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(getContext()));
+        TvRecyclerView tvRecyclerView = ((TvRecyclerView) findViewById(R.id.list));
         TitleWithDelAdapter adapter = new TitleWithDelAdapter();
-        recyclerView.setAdapter(adapter);
+        tvRecyclerView.setAdapter(adapter);
         adapter.setNewData(allBackup());
         adapter.setOnItemChildClickListener(new BaseQuickAdapter.OnItemChildClickListener() {
             @Override

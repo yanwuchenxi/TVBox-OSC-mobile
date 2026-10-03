@@ -28,7 +28,6 @@ import com.github.tvbox.osc.ui.activity.LiveActivity;
 import com.github.tvbox.osc.ui.activity.SettingActivity;
 import com.github.tvbox.osc.ui.adapter.GridAdapter;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
-import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.NetworkClient;
 import com.github.tvbox.osc.util.UA;
@@ -39,6 +38,10 @@ import com.google.gson.JsonObject;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.AbsCallback;
 import com.lzy.okgo.model.Response;
+import com.orhanobut.hawk.Hawk;
+import com.owen.tvrecyclerview.widget.TvRecyclerView;
+import com.owen.tvrecyclerview.widget.V7GridLayoutManager;
+import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -124,7 +127,7 @@ public class UserFragment extends BaseLazyFragment {
     }
 
     private void initHomeHotVod(GridAdapter adapter) {
-        if (ConfigStore.getInt(HawkConfig.HOME_REC, 0) == 1) {
+        if (Hawk.get(HawkConfig.HOME_REC, 0) == 1) {
             if (homeSourceRec != null && homeSourceRec.size() > 0) {
                 showSuccess();
                 adapter.setNewData(homeSourceRec);
@@ -139,9 +142,9 @@ public class UserFragment extends BaseLazyFragment {
             int month = cal.get(Calendar.MONTH) + 1;
             int day = cal.get(Calendar.DATE);
             String today = String.format("%d%d%d", year, month, day);
-            String requestDay = ConfigStore.getString("home_hot_day", "");
+            String requestDay = Hawk.get("home_hot_day", "");
             if (requestDay.equals(today)) {
-                String json = ConfigStore.getString("home_hot", "");
+                String json = Hawk.get("home_hot", "");
                 if (!json.isEmpty()) {
                     ArrayList<Movie.Video> hotMovies = loadHots(json);
                     if (hotMovies != null && hotMovies.size() > 0) {
@@ -155,8 +158,8 @@ public class UserFragment extends BaseLazyFragment {
             NetworkClient.getStringAsync(doubanUrl, UA.randomOne(), new NetworkClient.StringCallback() {
                         @Override
                         public void onSuccess(int code, String netJson) {
-                            ConfigStore.putString("home_hot_day", today);
-                            ConfigStore.putString("home_hot", netJson);
+                            Hawk.put("home_hot_day", today);
+                            Hawk.put("home_hot", netJson);
                             if (mActivity == null) return;
                             mActivity.runOnUiThread(() -> {
                                 ArrayList<Movie.Video> videos = loadHots(netJson);

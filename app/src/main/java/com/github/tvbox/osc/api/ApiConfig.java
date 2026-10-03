@@ -18,7 +18,6 @@ import com.github.tvbox.osc.server.ControlManager;
 import com.github.tvbox.osc.util.AES;
 import com.github.tvbox.osc.util.AdBlocker;
 import com.github.tvbox.osc.util.DefaultConfig;
-import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.MD5;
 import com.github.tvbox.osc.util.VideoParseRuler;
@@ -26,6 +25,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.orhanobut.hawk.Hawk;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -63,9 +63,6 @@ public class ApiConfig {
     private SourceBean emptyHome = new SourceBean();
 
     private final SpiderFactory spiderFactory = new SpiderFactory();
-    private volatile int loadGeneration = 0;
-    private String lastLoadedSpider = "";
-
     private JarLoader jarLoader;
     private JsLoader jsLoader;
 
@@ -92,26 +89,17 @@ public class ApiConfig {
         return instance;
     }
 
-    /** 轻量判断是否像 JSON，避免 org.json 过严 */
-    public static boolean looksLikeJson(String s) {
-        if (s == null) return false;
-        String t = s.trim();
-        if (t.isEmpty()) return false;
-        char c = t.charAt(0);
-        return c == '{' || c == '[';
-    }
-
     public static String FindResult(String json, String configKey) {
         String content = json == null ? "" : json.trim();
         try {
-            if (looksLikeJson(content) && AES.isJson(content)) return content;
-            Pattern pattern = Pattern.compile("[A-Za-z0]{8}\\*\\*");
+            if (AES.isJson(content)) return content;
+            Pattern pattern = Pattern.compile("[A-Za-z0]{8}\*\*");
             Matcher matcher = pattern.matcher(content);
             if (matcher.find()) {
                 content = content.substring(content.indexOf(matcher.group()) + 10);
                 content = new String(Base64.decode(content, Base64.DEFAULT), "UTF-8");
             }
-            // 2423 加密源：密钥材料按 ISO-8859-1 解析（UTF-8 会导致无法定位 $#key#$）
+            // 2423 加密：密钥材料必须用 ISO-8859-1 解释 hex 字节（UTF-8 会导致无法定位 $#key#$）
             if (content.startsWith("2423")) {
                 int p2324 = content.indexOf("2324");
                 if (p2324 < 0 || content.length() < 30) {
@@ -127,24 +115,14 @@ public class ApiConfig {
                 String key = AES.rightPadding(meta.substring(k0 + 2, k1), "0", 16);
                 String iv = AES.rightPadding(meta.substring(meta.length() - 13), "0", 16);
                 String plain = AES.CBC(data, key, iv);
-                if (plain != null && looksLikeJson(plain)) {
-                    json = plain;
+                if (plain != null && plain.trim().startsWith("{")) {
+                    json = plain.trim();
                 }
-            } else if (configKey != null && !looksLikeJson(content)) {
+            } else if (configKey != null && !AES.isJson(content)) {
                 String plain = AES.ECB(content, configKey);
                 if (plain != null) json = plain;
             } else {
                 json = content;
-            }
-            if (json != null) {
-                json = json.trim();
-                if (!json.isEmpty() && json.charAt(0) == '﻿') {
-                    json = json.substring(1);
-                }
-                int brace = json.indexOf('{');
-                if (brace > 0 && brace < 16) {
-                    json = json.substring(brace);
-                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -170,9 +148,7 @@ public class ApiConfig {
             return;
         }
         File cache = new File(App.getInstance().getFilesDir().getAbsolutePath() + "/" + MD5.encode(apiUrl));
-        // 本地 clan 禁止用旧缓存（常含失效的 127.0.0.1:端口，导致有站无数据且无提示）
-        boolean allowCache = useCache && !apiUrl.startsWith("clan://localhost/");
-        if (allowCache && cache.exists()) {
+        if (useCache && cache.exists()) {
             try {
                 parseJson(apiUrl, cache);
                 callback.success();
@@ -205,84 +181,20 @@ public class ApiConfig {
         hdrs.put("Accept", requestAccept);
         final String finalApiUrl = apiUrl;
         final File finalCache = cache;
-        final String finalConfigUrl = configUrl;
-        final String finalConfigKey = configKey;
-
-        // clan://localhost：只读磁盘，禁止依赖 9978；失败必须明确回调 error
-        if (apiUrl.startsWith("clan://localhost/")) {
-            new Thread(() -> {
-                android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
-                try {
-                    try {
-                        com.github.tvbox.osc.server.ControlManager.get().startServer();
-                    } catch (Throwable ignored) {
-                    }
-                    String result = readClanLocalhostFile(finalApiUrl);
-                    if (result == null || result.trim().isEmpty()) {
-                        throw new IllegalStateException("本地文件为空或不存在: " + finalApiUrl);
-                    }
-                    if (finalConfigKey != null) {
-                        result = FindResult(result, finalConfigKey);
-                    } else if (!looksLikeJson(result)) {
-                        String dec = FindResult(result, null);
-                        if (dec != null && looksLikeJson(dec)) result = dec;
-                    }
-                    if (!looksLikeJson(result)) {
-                        throw new IllegalStateException("本地文件不是 JSON 配置");
-                    }
-                    // 不要调用会触发 NPE/连 9978 的 clanToAddress 强依赖；相对路径用 clan 前缀
-                    result = fixContentPath(finalApiUrl, result);
-                    parseJson(finalApiUrl, result);
-                    int siteCount = sourceBeanList != null ? sourceBeanList.size() : 0;
-                    if (siteCount <= 0) {
-                        throw new IllegalStateException("配置已读取但 sites 为空");
-                    }
-                    try {
-                        if (finalCache.exists()) finalCache.delete();
-                        FileOutputStream fos = new FileOutputStream(finalCache);
-                        fos.write(result.getBytes("UTF-8"));
-                        fos.flush();
-                        fos.close();
-                    } catch (Throwable ignored) {
-                    }
-                    final int sc = siteCount;
-                    main.post(() -> {
-                        try {
-                            android.widget.Toast.makeText(
-                                    App.getInstance(),
-                                    "本地订阅已加载 " + sc + " 个站点",
-                                    android.widget.Toast.LENGTH_SHORT).show();
-                        } catch (Throwable ignored) {
-                        }
-                        callback.success();
-                    });
-                } catch (Throwable th) {
-                    th.printStackTrace();
-                    // 本地失败时删除坏缓存，禁止静默用旧缓存“成功”
-                    try {
-                        if (finalCache.exists()) finalCache.delete();
-                    } catch (Throwable ignored) {
-                    }
-                    String msg = th.getMessage();
-                    if (msg == null || msg.isEmpty()) msg = th.getClass().getSimpleName();
-                    final String err = "本地配置失败: " + msg;
-                    main.post(() -> callback.error(err));
-                }
-            }).start();
-            return;
-        }
-
         com.github.tvbox.osc.util.NetworkClient.getStringAsync(configUrl, null, hdrs,
                 new com.github.tvbox.osc.util.NetworkClient.StringCallback() {
                     @Override
                     public void onSuccess(int code, String body) {
                         try {
                             String result = body != null ? body : "";
-                            if (finalConfigKey != null) {
-                                result = FindResult(result, finalConfigKey);
-                            } else if (!looksLikeJson(result)) {
+                            if (configKey != null) {
+                                result = FindResult(result, configKey);
+                            } else if (result.length() > 10 && !result.trim().startsWith("{") && !result.trim().startsWith("[")) {
+                                // 在线 2423 等加密源（无 ;pk; 时也尝试解密）；明文 JSON 不动
                                 String dec = FindResult(result, null);
-                                if (dec != null && looksLikeJson(dec)) result = dec;
+                                if (dec != null && (dec.trim().startsWith("{") || dec.trim().startsWith("["))) {
+                                    result = dec;
+                                }
                             }
                             if (finalApiUrl.startsWith("clan")) {
                                 result = clanContentFix(clanToAddress(finalApiUrl), result);
@@ -311,7 +223,6 @@ public class ApiConfig {
 
                     @Override
                     public void onError(Throwable e) {
-                        // 其它 clan 或网络失败时再尝试本地缓存
                         if (finalCache.exists()) {
                             try {
                                 parseJson(finalApiUrl, finalCache);
@@ -331,18 +242,10 @@ public class ApiConfig {
         String jarUrl = urls[0];
         String md5 = urls.length > 1 ? urls[1].trim() : "";
         File cache = new File(App.getInstance().getFilesDir().getAbsolutePath() + "/csp.jar");
-        // 本地路径或切换订阅后禁止复用旧 csp.jar
-        boolean localSpider = jarUrl.startsWith("clan://") || jarUrl.startsWith("/")
-                || (!jarUrl.startsWith("http://") && !jarUrl.startsWith("https://") && !jarUrl.startsWith("img+"));
-        if (localSpider || (lastLoadedSpider != null && !lastLoadedSpider.isEmpty() && !jarUrl.equals(lastLoadedSpider))) {
-            useCache = false;
-            try { if (cache.exists()) cache.delete(); } catch (Throwable ignored) {}
-        }
 
         if (!md5.isEmpty() || useCache) {
             if (cache.exists() && (useCache || MD5.getFileMd5(cache).equalsIgnoreCase(md5))) {
                 if (jarLoader.load(cache.getAbsolutePath())) {
-                    lastLoadedSpider = jarUrl;
                     callback.success();
                 } else {
                     callback.error("");
@@ -358,22 +261,10 @@ public class ApiConfig {
         final boolean finalIsJarInImg = isJarInImg;
         new Thread(() -> {
             try {
-                byte[] raw;
-                File localJar = resolveLocalSpiderFile(finalJarUrl);
-                if (localJar != null) {
-                    java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-                    java.io.FileInputStream fis = new java.io.FileInputStream(localJar);
-                    byte[] buf = new byte[8192];
-                    int n;
-                    while ((n = fis.read(buf)) > 0) bos.write(buf, 0, n);
-                    fis.close();
-                    raw = bos.toByteArray();
-                } else {
-                    java.util.Map<String, String> hdrs = new java.util.HashMap<>();
-                    hdrs.put("User-Agent", userAgent);
-                    hdrs.put("Accept", requestAccept);
-                    raw = com.github.tvbox.osc.util.NetworkClient.getBytesSync(finalJarUrl, hdrs);
-                }
+                java.util.Map<String, String> hdrs = new java.util.HashMap<>();
+                hdrs.put("User-Agent", userAgent);
+                hdrs.put("Accept", requestAccept);
+                byte[] raw = com.github.tvbox.osc.util.NetworkClient.getBytesSync(finalJarUrl, hdrs);
                 File cacheDir = finalCache.getParentFile();
                 if (!cacheDir.exists())
                     cacheDir.mkdirs();
@@ -390,7 +281,6 @@ public class ApiConfig {
                 fos.flush();
                 fos.close();
                 boolean ok = finalCache.exists() && jarLoader.load(finalCache.getAbsolutePath());
-                if (ok) lastLoadedSpider = finalJarUrl;
                 android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
                 main.post(() -> {
                     if (ok) callback.success();
@@ -398,9 +288,7 @@ public class ApiConfig {
                 });
             } catch (Throwable e) {
                 e.printStackTrace();
-                String em = e.getMessage();
-                new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
-                        callback.error(em != null && !em.isEmpty() ? em : "爬虫包加载失败"));
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.error(""));
             }
         }).start();
     }
@@ -409,35 +297,24 @@ public class ApiConfig {
         System.out.println("从本地缓存加载" + f.getAbsolutePath());
         BufferedReader bReader = new BufferedReader(new InputStreamReader(new FileInputStream(f), "UTF-8"));
         StringBuilder sb = new StringBuilder();
-        String s;
+        String s = "";
         while ((s = bReader.readLine()) != null) {
-            sb.append(s);
-            sb.append("\n");
+            sb.append(s + "\n");
         }
         bReader.close();
-        String content = sb.toString();
-        if (!looksLikeJson(content) ) {
-            String dec = FindResult(content, null);
-            if (dec != null && !dec.isEmpty()) content = dec;
-        }
-        parseJson(apiUrl, content);
+        parseJson(apiUrl, sb.toString());
     }
 
-private void parseJson(String apiUrl, String jsonStr) {
+    private void parseJson(String apiUrl, String jsonStr) {
         JsonObject infoJson = new Gson().fromJson(jsonStr, JsonObject.class);
         // spider
         spider = DefaultConfig.safeJsonString(infoJson, "spider", "");
-        // 本地配置：把相对 spider 转成 clan://localhost/目录/xxx，便于直读
-        spider = resolveRelativeToConfig(apiUrl, spider);
         // wallpaper
         wallpaper = DefaultConfig.safeJsonString(infoJson, "wallpaper", "");
         // 远端站点源
         SourceBean firstSite = null;
         if (sourceBeanList!= null)
             sourceBeanList.clear();
-        if (!infoJson.has("sites") || !infoJson.get("sites").isJsonArray()) {
-            throw new IllegalStateException("配置缺少 sites 数组");
-        }
         for (JsonElement opt : infoJson.get("sites").getAsJsonArray()) {
             JsonObject obj = (JsonObject) opt;
             SourceBean sb = new SourceBean();
@@ -445,7 +322,7 @@ private void parseJson(String apiUrl, String jsonStr) {
             sb.setKey(siteKey);
             sb.setName(obj.get("name").getAsString().trim());
             sb.setType(obj.get("type").getAsInt());
-            sb.setApi(resolveRelativeToConfig(apiUrl, obj.get("api").getAsString().trim()));
+            sb.setApi(obj.get("api").getAsString().trim());
             sb.setSearchable(DefaultConfig.safeJsonInt(obj, "searchable", 1));
             sb.setQuickSearch(DefaultConfig.safeJsonInt(obj, "quickSearch", 1));
             sb.setFilterable(DefaultConfig.safeJsonInt(obj, "filterable", 1));
@@ -455,7 +332,7 @@ private void parseJson(String apiUrl, String jsonStr) {
             }else {
                 sb.setExt(DefaultConfig.safeJsonString(obj, "ext", ""));
             }
-            sb.setJar(resolveRelativeToConfig(apiUrl, DefaultConfig.safeJsonString(obj, "jar", "")));
+            sb.setJar(DefaultConfig.safeJsonString(obj, "jar", ""));
             sb.setPlayerType(DefaultConfig.safeJsonInt(obj, "playerType", -1));
             sb.setCategories(DefaultConfig.safeJsonStringList(obj, "categories"));
             sb.setClickSelector(DefaultConfig.safeJsonString(obj, "click", ""));
@@ -464,7 +341,7 @@ private void parseJson(String apiUrl, String jsonStr) {
             sourceBeanList.put(siteKey, sb);
         }
         if (sourceBeanList != null && sourceBeanList.size() > 0) {
-            String home = ConfigStore.getString(HawkConfig.HOME_API, "");
+            String home = Hawk.get(HawkConfig.HOME_API, "");
             SourceBean sh = getSource(home);
             if (sh == null)
                 setSourceBean(firstSite);
@@ -490,7 +367,7 @@ private void parseJson(String apiUrl, String jsonStr) {
         }
         // 获取默认解析
         if (parseBeanList != null && parseBeanList.size() > 0) {
-            String defaultParse = ConfigStore.getString(HawkConfig.DEFAULT_PARSE, "");
+            String defaultParse = Hawk.get(HawkConfig.DEFAULT_PARSE, "");
             if (!TextUtils.isEmpty(defaultParse))
                 for (ParseBean pb : parseBeanList) {
                     if (pb.getName().equals(defaultParse))
@@ -501,8 +378,8 @@ private void parseJson(String apiUrl, String jsonStr) {
         }
         // 直播源
         liveChannelGroupList.clear();           //修复从后台切换重复加载频道列表
-        String liveURL = ConfigStore.getString(HawkConfig.LIVE_URL, "");
-        //String epgURL  = ConfigStore.getString(HawkConfig.EPG_URL, "");
+        String liveURL = Hawk.get(HawkConfig.LIVE_URL, "");
+        //String epgURL  = Hawk.get(HawkConfig.EPG_URL, "");
 
         String liveURL_final = null;
         try {
@@ -551,7 +428,7 @@ private void parseJson(String apiUrl, String jsonStr) {
                         //putEPGHistory(epg);
                         // Overwrite with EPG URL from Settings
                         //if (StringUtils.isBlank(epgURL)) {
-                            ConfigStore.putString(HawkConfig.EPG_URL, epg);
+                            Hawk.put(HawkConfig.EPG_URL, epg);
 //                        } else {
 //                            Hawk.put(HawkConfig.EPG_URL, epgURL);
 //                        }
@@ -580,7 +457,7 @@ private void parseJson(String apiUrl, String jsonStr) {
                                 //putEPGHistory(epg);
                                 // Overwrite with EPG URL from Settings
                                 //if (StringUtils.isBlank(epgURL)) {
-                                    ConfigStore.putString(HawkConfig.EPG_URL, epg);
+                                    Hawk.put(HawkConfig.EPG_URL, epg);
 //                                } else {
 //                                    Hawk.put(HawkConfig.EPG_URL, epgURL);
 //                                }
@@ -688,7 +565,7 @@ private void parseJson(String apiUrl, String jsonStr) {
         if(ijkCodes==null){
             ijkCodes = new ArrayList<>();
             boolean foundOldSelect = false;
-            String ijkCodec = ConfigStore.getString(HawkConfig.IJK_CODEC, "");
+            String ijkCodec = Hawk.get(HawkConfig.IJK_CODEC, "");
             JsonArray ijkJsonArray = infoJson.has("ijk")?infoJson.get("ijk").getAsJsonArray():defaultJson.get("ijk").getAsJsonArray();
             for (JsonElement opt : ijkJsonArray) {
                 JsonObject obj = (JsonObject) opt;
@@ -720,12 +597,12 @@ private void parseJson(String apiUrl, String jsonStr) {
 
     private void putLiveHistory(String url) {
         if (!url.isEmpty()) {
-            ArrayList<String> liveHistory = ConfigStore.getStringList(HawkConfig.LIVE_HISTORY);
+            ArrayList<String> liveHistory = Hawk.get(HawkConfig.LIVE_HISTORY, new ArrayList<String>());
             if (!liveHistory.contains(url))
                 liveHistory.add(0, url);
             if (liveHistory.size() > 20)
                 liveHistory.remove(20);
-            ConfigStore.putStringList(HawkConfig.LIVE_HISTORY, liveHistory);
+            Hawk.put(HawkConfig.LIVE_HISTORY, liveHistory);
         }
     }
 
@@ -819,14 +696,14 @@ private void parseJson(String apiUrl, String jsonStr) {
 
     public void setSourceBean(SourceBean sourceBean) {
         this.mHomeSource = sourceBean;
-        ConfigStore.putString(HawkConfig.HOME_API, sourceBean.getKey());
+        Hawk.put(HawkConfig.HOME_API, sourceBean.getKey());
     }
 
     public void setDefaultParse(ParseBean parseBean) {
         if (this.mDefaultParse != null)
             this.mDefaultParse.setDefault(false);
         this.mDefaultParse = parseBean;
-        ConfigStore.putString(HawkConfig.DEFAULT_PARSE, parseBean.getName());
+        Hawk.put(HawkConfig.DEFAULT_PARSE, parseBean.getName());
         parseBean.setDefault(true);
     }
 
@@ -884,7 +761,7 @@ private void parseJson(String apiUrl, String jsonStr) {
 
         List<IJKCode> ijkCodes = new ArrayList<>();
         boolean foundOldSelect = false;
-        String ijkCodec = ConfigStore.getString(HawkConfig.IJK_CODEC, "");
+        String ijkCodec = Hawk.get(HawkConfig.IJK_CODEC, "");
         JsonArray ijkJsonArray = defaultJson.get("ijk").getAsJsonArray();
         for (JsonElement opt : ijkJsonArray) {
             JsonObject obj = (JsonObject) opt;
@@ -923,7 +800,7 @@ private void parseJson(String apiUrl, String jsonStr) {
     }
 
     public IJKCode getCurrentIJKCode() {
-        String codeName = ConfigStore.getString(HawkConfig.IJK_CODEC, "");
+        String codeName = Hawk.get(HawkConfig.IJK_CODEC, "");
         return getIJKCodec(codeName);
     }
 
@@ -935,87 +812,7 @@ private void parseJson(String apiUrl, String jsonStr) {
         return ijkCodes.get(0);
     }
 
-
-    /** 将 clan://localhost/相对路径 映射到外部存储真实文件并读取文本 */
-
-    /** 将配置内相对路径解析为 clan:// 或 http 绝对路径 */
-    private static String resolveRelativeToConfig(String configUrl, String path) {
-        if (path == null) return "";
-        path = path.trim();
-        if (path.isEmpty()) return path;
-        if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("clan://")
-                || path.startsWith("file://") || path.startsWith("img+")) {
-            return path;
-        }
-        // csp_Xxx 是类名不是路径
-        if (path.startsWith("csp_")) return path;
-        if (configUrl == null) configUrl = "";
-        if (configUrl.startsWith("clan://localhost/")) {
-            String base = configUrl;
-            int slash = base.lastIndexOf('/');
-            if (slash >= 0) base = base.substring(0, slash + 1);
-            while (path.startsWith("./")) path = path.substring(2);
-            while (path.startsWith("/")) path = path.substring(1);
-            return base + path;
-        }
-        if (configUrl.startsWith("http://") || configUrl.startsWith("https://")) {
-            try {
-                int slash = configUrl.lastIndexOf('/');
-                String base = slash >= 0 ? configUrl.substring(0, slash + 1) : configUrl;
-                while (path.startsWith("./")) path = path.substring(2);
-                return base + path;
-            } catch (Throwable ignored) {
-            }
-        }
-        return path;
-    }
-
-    private static String readClanLocalhostFile(String clanUrl) throws Exception {
-        if (clanUrl == null || !clanUrl.startsWith("clan://localhost/")) return null;
-        String rel = clanUrl.substring("clan://localhost/".length());
-        try {
-            rel = java.net.URLDecoder.decode(rel, "UTF-8");
-        } catch (Throwable ignored) {
-        }
-        while (rel.startsWith("/")) rel = rel.substring(1);
-        java.util.List<java.io.File> candidates = new java.util.ArrayList<>();
-        java.io.File ext = android.os.Environment.getExternalStorageDirectory();
-        if (ext != null) candidates.add(new java.io.File(ext, rel));
-        candidates.add(new java.io.File("/storage/emulated/0/" + rel));
-        candidates.add(new java.io.File("/sdcard/" + rel));
-        // 兼容订阅选择器复制到 TVBoxSubs 的情况
-        if (!rel.startsWith("TVBoxSubs/")) {
-            if (ext != null) candidates.add(new java.io.File(ext, "TVBoxSubs/" + new java.io.File(rel).getName()));
-            candidates.add(new java.io.File("/storage/emulated/0/TVBoxSubs/" + new java.io.File(rel).getName()));
-        }
-        java.io.File found = null;
-        StringBuilder tried = new StringBuilder();
-        for (java.io.File f : candidates) {
-            if (tried.length() > 0) tried.append(" | ");
-            tried.append(f.getAbsolutePath());
-            if (f.isFile() && f.length() > 0) {
-                found = f;
-                break;
-            }
-        }
-        if (found == null) {
-            throw new java.io.FileNotFoundException("找不到本地配置, 已尝试: " + tried);
-        }
-        java.io.File f = found;
-        StringBuilder sb = new StringBuilder();
-        java.io.BufferedReader br = new java.io.BufferedReader(
-                new java.io.InputStreamReader(new java.io.FileInputStream(f), "UTF-8"));
-        String line;
-        while ((line = br.readLine()) != null) {
-            sb.append(line);
-            sb.append("\n");
-        }
-        br.close();
-        return sb.toString();
-    }
-
     String clanToAddress(String lanLink) {
-        // 与可工作版本 74bd837 一致：不强制百分号编码，交由本地服务按 UTF-8 路径取文件
         if (lanLink.startsWith("clan://localhost/")) {
             return lanLink.replace("clan://localhost/", ControlManager.get().getAddress(true) + "file/");
         } else {
@@ -1025,82 +822,18 @@ private void parseJson(String apiUrl, String jsonStr) {
         }
     }
 
-    /** 对路径分段做 URL 编码，保留斜杠，兼容中文目录 */
-    private static String encodePathSegments(String path) {
-        if (path == null || path.isEmpty()) return "";
-        try {
-            path = java.net.URLDecoder.decode(path, "UTF-8");
-        } catch (Throwable ignored) {
-        }
-        String[] parts = path.split("/");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.length; i++) {
-            if (parts[i].isEmpty()) continue;
-            if (sb.length() > 0) sb.append('/');
-            try {
-                sb.append(java.net.URLEncoder.encode(parts[i], "UTF-8").replace("+", "%20"));
-            } catch (Throwable e) {
-                sb.append(parts[i]);
-            }
-        }
-        return sb.toString();
-    }
-
-    /** 将 jar/spider 地址解析为可读的本地文件（若适用） */
-    public static File resolveLocalSpiderFile(String jarUrl) {
-        if (jarUrl == null || jarUrl.isEmpty()) return null;
-        String u = jarUrl.trim();
-        try {
-            if (u.startsWith("clan://localhost/")) {
-                String rel = u.substring("clan://localhost/".length());
-                try { rel = java.net.URLDecoder.decode(rel, "UTF-8"); } catch (Throwable ignored) {}
-                while (rel.startsWith("/")) rel = rel.substring(1);
-                File f = new File(android.os.Environment.getExternalStorageDirectory(), rel);
-                if (f.isFile()) return f;
-                f = new File("/storage/emulated/0/" + rel);
-                return f.isFile() ? f : null;
-            }
-            // http://127.0.0.1:port/file/xxx
-            int idx = u.indexOf("/file/");
-            if (idx >= 0 && (u.contains("127.0.0.1") || u.contains("localhost"))) {
-                String rel = u.substring(idx + 6);
-                try { rel = java.net.URLDecoder.decode(rel, "UTF-8"); } catch (Throwable ignored) {}
-                while (rel.startsWith("/")) rel = rel.substring(1);
-                // strip query
-                int q = rel.indexOf('?');
-                if (q >= 0) rel = rel.substring(0, q);
-                File f = new File(android.os.Environment.getExternalStorageDirectory(), rel);
-                if (f.isFile()) return f;
-                f = new File("/storage/emulated/0/" + rel);
-                return f.isFile() ? f : null;
-            }
-            if (u.startsWith("/") && !u.startsWith("//")) {
-                File f = new File(u);
-                return f.isFile() ? f : null;
-            }
-        } catch (Throwable ignored) {
-        }
-        return null;
-    }
-
     String clanContentFix(String lanLink, String content) {
         String fix = lanLink.substring(0, lanLink.indexOf("/file/") + 6);
         return content.replace("clan://", fix);
     }
 
     String fixContentPath(String url, String content) {
-        if (content.contains("./")) {
-            if (url != null && url.startsWith("clan://localhost/")) {
-                int slash = url.lastIndexOf('/');
-                String base = slash >= 0 ? url.substring(0, slash + 1) : "clan://localhost/";
-                content = content.replace("./", base);
-                return content;
-            }
-            if (!url.startsWith("http") && !url.startsWith("clan://")) {
+        if (content.contains("\"./")) {
+            if(!url.startsWith("http") && !url.startsWith("clan://")){
                 url = "http://" + url;
             }
-            if (url.startsWith("clan://")) url = clanToAddress(url);
-            content = content.replace("./", url.substring(0, url.lastIndexOf("/") + 1));
+            if(url.startsWith("clan://"))url=clanToAddress(url);
+            content = content.replace("./", url.substring(0,url.lastIndexOf("/") + 1));
         }
         return content;
     }

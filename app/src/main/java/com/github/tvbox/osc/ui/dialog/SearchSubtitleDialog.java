@@ -30,8 +30,8 @@ import com.github.tvbox.osc.bean.SubtitleData;
 import com.github.tvbox.osc.ui.adapter.SearchSubtitleAdapter;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.viewmodel.SubtitleViewModel;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import com.owen.tvrecyclerview.widget.TvRecyclerView;
+import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -41,7 +41,7 @@ import java.util.List;
 public class SearchSubtitleDialog extends BaseDialog {
 
     private Context mContext;
-    private RecyclerView mGridView;
+    private TvRecyclerView mGridView;
     private SearchSubtitleAdapter searchAdapter;
 
     private TextView subtitleSearchBtn;
@@ -87,7 +87,7 @@ public class SearchSubtitleDialog extends BaseDialog {
         subtitleSearchBtn = findViewById(R.id.inputSubmit);
         searchAdapter = new SearchSubtitleAdapter();
         mGridView.setHasFixedSize(true);
-        mGridView.setLayoutManager(new LinearLayoutManager(getContext()));
+        mGridView.setLayoutManager(new V7LinearLayoutManager(getContext(), 1, false));
         mGridView.setAdapter(searchAdapter);
         searchAdapter.setOnItemClickListener(new BaseQuickAdapter.OnItemClickListener() {
             @Override

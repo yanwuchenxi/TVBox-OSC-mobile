@@ -18,14 +18,14 @@ import com.github.tvbox.osc.ui.adapter.LiveSettingGroupAdapter;
 import com.github.tvbox.osc.ui.adapter.LiveSettingItemAdapter;
 import com.github.tvbox.osc.ui.widget.GridSpacingItemDecoration;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
-import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.Utils;
 import com.lxj.xpopup.XPopup;
 import com.lxj.xpopup.core.BottomPopupView;
 import com.lxj.xpopup.enums.PopupPosition;
 import com.lxj.xpopup.interfaces.OnSelectListener;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import com.orhanobut.hawk.Hawk;
+import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -68,7 +68,7 @@ public class LiveSettingDialog extends BottomPopupView {
 
     private void initSettingGroupView() {
         mBinding.mSettingGroupView.setHasFixedSize(true);
-        mBinding.mSettingGroupView.setLayoutManager(new LinearLayoutManager(getContext()));
+        mBinding.mSettingGroupView.setLayoutManager(new V7LinearLayoutManager(getContext(), 1, false));
 
         liveSettingGroupAdapter = new LiveSettingGroupAdapter();
         mBinding.mSettingGroupView.setAdapter(liveSettingGroupAdapter);
@@ -85,7 +85,7 @@ public class LiveSettingDialog extends BottomPopupView {
 
     private void initSettingItemView() {
         mBinding.mSettingItemView.setHasFixedSize(true);
-        mBinding.mSettingItemView.setLayoutManager(new LinearLayoutManager(getContext()));
+        mBinding.mSettingItemView.setLayoutManager(new V7LinearLayoutManager(getContext(), 1, false));
 
         liveSettingItemAdapter = new LiveSettingItemAdapter();
         mBinding.mSettingItemView.setAdapter(liveSettingItemAdapter);
@@ -129,11 +129,11 @@ public class LiveSettingDialog extends BottomPopupView {
             liveSettingGroup.setLiveSettingItems(liveSettingItemList);
             liveSettingGroupList.add(liveSettingGroup);
         }
-        liveSettingGroupList.get(3).getLiveSettingItems().get(ConfigStore.getInt(HawkConfig.LIVE_CONNECT_TIMEOUT, 1)).setItemSelected(true);
-        liveSettingGroupList.get(4).getLiveSettingItems().get(0).setItemSelected(ConfigStore.getBool(HawkConfig.LIVE_SHOW_TIME, false));
-        liveSettingGroupList.get(4).getLiveSettingItems().get(1).setItemSelected(ConfigStore.getBool(HawkConfig.LIVE_SHOW_NET_SPEED, false));
-        liveSettingGroupList.get(4).getLiveSettingItems().get(2).setItemSelected(ConfigStore.getBool(HawkConfig.LIVE_CHANNEL_REVERSE, false));
-        liveSettingGroupList.get(4).getLiveSettingItems().get(3).setItemSelected(ConfigStore.getBool(HawkConfig.LIVE_CROSS_GROUP, false));
+        liveSettingGroupList.get(3).getLiveSettingItems().get(Hawk.get(HawkConfig.LIVE_CONNECT_TIMEOUT, 1)).setItemSelected(true);
+        liveSettingGroupList.get(4).getLiveSettingItems().get(0).setItemSelected(Hawk.get(HawkConfig.LIVE_SHOW_TIME, false));
+        liveSettingGroupList.get(4).getLiveSettingItems().get(1).setItemSelected(Hawk.get(HawkConfig.LIVE_SHOW_NET_SPEED, false));
+        liveSettingGroupList.get(4).getLiveSettingItems().get(2).setItemSelected(Hawk.get(HawkConfig.LIVE_CHANNEL_REVERSE, false));
+        liveSettingGroupList.get(4).getLiveSettingItems().get(3).setItemSelected(Hawk.get(HawkConfig.LIVE_CROSS_GROUP, false));
         liveSettingGroupAdapter.setNewData(liveSettingGroupList);
     }
 
@@ -192,26 +192,26 @@ public class LiveSettingDialog extends BottomPopupView {
                 mActivity.changePlayer(position);
                 break;
             case 3://超时换源
-                ConfigStore.putInt(HawkConfig.LIVE_CONNECT_TIMEOUT, position);
+                Hawk.put(HawkConfig.LIVE_CONNECT_TIMEOUT, position);
                 break;
             case 4://超时换源
                 boolean select = false;
                 switch (position) {
                     case 0:
-                        select = !ConfigStore.getBool(HawkConfig.LIVE_SHOW_TIME, false);
-                        ConfigStore.putBool(HawkConfig.LIVE_SHOW_TIME, select);
+                        select = !Hawk.get(HawkConfig.LIVE_SHOW_TIME, false);
+                        Hawk.put(HawkConfig.LIVE_SHOW_TIME, select);
                         break;
                     case 1:
-                        select = !ConfigStore.getBool(HawkConfig.LIVE_SHOW_NET_SPEED, false);
-                        ConfigStore.putBool(HawkConfig.LIVE_SHOW_NET_SPEED, select);
+                        select = !Hawk.get(HawkConfig.LIVE_SHOW_NET_SPEED, false);
+                        Hawk.put(HawkConfig.LIVE_SHOW_NET_SPEED, select);
                         break;
                     case 2:
-                        select = !ConfigStore.getBool(HawkConfig.LIVE_CHANNEL_REVERSE, false);
-                        ConfigStore.putBool(HawkConfig.LIVE_CHANNEL_REVERSE, select);
+                        select = !Hawk.get(HawkConfig.LIVE_CHANNEL_REVERSE, false);
+                        Hawk.put(HawkConfig.LIVE_CHANNEL_REVERSE, select);
                         break;
                     case 3:
-                        select = !ConfigStore.getBool(HawkConfig.LIVE_CROSS_GROUP, false);
-                        ConfigStore.putBool(HawkConfig.LIVE_CROSS_GROUP, select);
+                        select = !Hawk.get(HawkConfig.LIVE_CROSS_GROUP, false);
+                        Hawk.put(HawkConfig.LIVE_CROSS_GROUP, select);
                         break;
                 }
                 liveSettingItemAdapter.selectItem(position, select, false);

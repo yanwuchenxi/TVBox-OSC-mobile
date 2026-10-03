@@ -38,12 +38,12 @@ import com.github.tvbox.osc.ui.dialog.LastViewedDialog
 import com.github.tvbox.osc.ui.dialog.SelectDialog
 import com.github.tvbox.osc.ui.dialog.TipDialog
 import com.github.tvbox.osc.util.DefaultConfig
-import com.github.tvbox.osc.util.ConfigStore
 import com.github.tvbox.osc.util.HawkConfig
 import com.github.tvbox.osc.viewmodel.SourceViewModel
 import com.lxj.xpopup.XPopup
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.GridLayoutManager
+import com.orhanobut.hawk.Hawk
+import com.owen.tvrecyclerview.widget.TvRecyclerView
+import com.owen.tvrecyclerview.widget.V7GridLayoutManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -122,9 +122,6 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                 } else {
                     DefaultConfig.adjustSort(ApiConfig.get().homeSourceBean.key, ArrayList(), true)
                 }
-            if (mSortDataList.isNullOrEmpty() || (mSortDataList.size == 1 && mSortDataList[0].id == "my0")) {
-                ToastUtils.showLong("站点无分类数据，请检查 spider/jar 是否与配置同目录")
-            }
             initViewPager(absXml)
         }
     }
@@ -142,13 +139,9 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
         showLoading()
         when{
             dataInitOk && jarInitOk -> {
-                val homeKey = ApiConfig.get().homeSourceBean?.key
-                if (homeKey.isNullOrEmpty()) {
-                    showSuccess()
-                    ToastUtils.showShort("当前订阅无可用站点")
-                } else {
-                    sourceViewModel?.getSort(homeKey)
-                }
+                //正常初始化会先加载,最终到这,此时数据有以下几种情况
+                // 1. api/jar/spider等均加载完,正常显示数据。2. 缺失spider(存疑?)/api配置有问题同样加载(最后空布局 或 只有豆瓣首页)
+                sourceViewModel?.getSort(ApiConfig.get().homeSourceBean.key)
             }
             dataInitOk && !jarInitOk -> {
                 loadJar()
@@ -190,10 +183,7 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                         initData()
                     }
                 } else {
-                    mHandler.post {
-                        ToastUtils.showLong(msg)
-                        showTipDialog(msg)
-                    }
+                    showTipDialog(msg)
                 }
             }
         }, activity)
@@ -219,8 +209,7 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                     override fun error(msg: String) {
                         jarInitOk = true
                         mHandler.post {
-                            val tip = if (msg.isNullOrBlank()) "爬虫包加载失败(有站可能无数据)" else "爬虫包加载失败: $msg"
-                            ToastUtils.showLong(tip)
+                            ToastUtils.showShort("更新订阅失败")
                             initData()
                         }
                     }
@@ -286,7 +275,7 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
             for (data in mSortDataList) {
                 mBinding.tabLayout.addView(getTabTextView(data.name))
                 if (data.id == "my0") { //tab是主页,添加主页fragment 根据设置项显示豆瓣热门/站点推荐(每个源不一样)/历史记录
-                    if (ConfigStore.getInt(
+                    if (Hawk.get(
                             HawkConfig.HOME_REC,
                             0
                         ) == 1 && absXml != null && absXml.videoList != null && absXml.videoList.size > 0
@@ -299,7 +288,7 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                     fragments.add(GridFragment.newInstance(data))
                 }
             }
-            if (ConfigStore.getInt(HawkConfig.HOME_REC, 0) == 2) { //关闭主页
+            if (Hawk.get(HawkConfig.HOME_REC, 0) == 2) { //关闭主页
                 mBinding.tabLayout.removeViewAt(0)
                 fragments.removeAt(0)
             }
@@ -341,6 +330,8 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
         val sites = ApiConfig.get().sourceBeanList
         if (sites.size > 0) {
             val dialog = SelectDialog<SourceBean>(requireActivity())
+            val tvRecyclerView = dialog.findViewById<TvRecyclerView>(R.id.list)
+            tvRecyclerView.setLayoutManager(V7GridLayoutManager(dialog.context, 2))
             dialog.setTip("请选择首页数据源")
             dialog.setAdapter(object : SelectDialogInterface<SourceBean?> {
                 override fun click(value: SourceBean?, pos: Int) {
@@ -360,9 +351,6 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                     return oldItem.key.contentEquals(newItem.key)
                 }
             }, sites, sites.indexOf(ApiConfig.get().homeSourceBean))
-            // setAdapter 会设线性布局，站点切换改为双列网格
-            dialog.findViewById<RecyclerView>(R.id.list)?.layoutManager =
-                GridLayoutManager(dialog.context, 2)
             dialog.show()
         } else {
             ToastUtils.showLong("暂无可用数据源")
@@ -414,10 +402,10 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
     override fun onResume() {
         super.onResume()
         try {
-            val fail = ConfigStore.getString("last_sub_fail_msg", "")
+            val fail = com.orhanobut.hawk.Hawk.get("last_sub_fail_msg", "")
             if (!fail.isNullOrEmpty()) {
                 com.blankj.utilcode.util.ToastUtils.showLong("订阅提醒：$fail")
-                ConfigStore.putString("last_sub_fail_msg", "")
+                com.orhanobut.hawk.Hawk.put("last_sub_fail_msg", "")
             }
         } catch (_: Throwable) {
         }

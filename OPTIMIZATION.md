@@ -29,35 +29,15 @@
 - [x] ApiConfig loadConfig/loadJar 改用 NetworkClient（已无 OkGo）
 - [x] SourceViewModel **全部** HTTP（sort/list/detail/search/play）改用 httpGet/NetworkClient，已无 OkGo
 - [x] 配置试点：`ConfigStore`（SharedPreferences + Gson，订阅/API；Hawk 双写 + 启动迁移）
-- [x] ConfigStore 通用 get/put + 常用键启动迁移；SettingActivity 设置项改走 ConfigStore
-- [x] 播放器/直播/详情/嗅探等大量 HawkConfig 读写改 ConfigStore
-- [x] LIVE_HISTORY / HISTORY_SEARCH / SOURCES_FOR_SEARCH JSON 化进 ConfigStore
+- [ ] 其余 Hawk 键逐步迁入 ConfigStore / DataStore
 
 ### 工程
-- [ ] AGP 8 + Kotlin 1.9 + OkHttp 4（未做，避免大版本一次翻车）
-- [x] targetSdk/compileSdk **34**，媒体权限 / FGS mediaPlayback / POST_NOTIFICATIONS，CI SDK 34
-- [x] `PermissionHelper`：启动时申请 POST_NOTIFICATIONS / READ_MEDIA_*（XXPermissions）
-- [x] SelectDialog 改标准 RecyclerView
-- [x] Backup/QuickSearch/SearchSubtitle/SearchCheckbox/GridFilter/LiveSetting 对话框 + Detail 布局管理器改标准 RecyclerView
-- [x] Live / GridFragment / VodController / LocalVideoController / FastSearch 布局与代码改标准 RecyclerView
-- [x] LinearSpacingItemDecoration 改用 androidx GridLayoutManager
-- [x] 已移除 `tv-recyclerview` Gradle 依赖
+- [ ] AGP 8 + Kotlin 1.9 + OkHttp 4
+- [ ] targetSdk 34 + 分区存储/通知权限完整适配
+- [ ] 去除仍依赖的 tv-recyclerview（需改 Live/Detail/Controller 布局）
 
 ### 功能
 - [x] 站点检测增强内容特征判断（非仅 HTTP 状态）
 - [x] DLNA Stop / Seek
-- [x] 品牌 protocolInfo 表（Samsung/LG/Sony/小米/海信/TCL）
+- [ ] 品牌 protocolInfo 表
 - [ ] 模块化 feature 拆分与 UI 测试
-
-- [x] 继续清理：HOME_API、DEFAULT_PARSE、EPG_URL、字幕、健康缓存、权限标记、直播频道播放配置等迁入 ConfigStore
-
-- [x] **移除 Hawk 依赖**：ConfigStore 纯 SharedPreferences；App 默认值与 JS local 存储全部迁移
-
-- [x] 移除 Hawk 依赖：ConfigStore 纯 SharedPreferences；App 默认值与 JS local 存储全部迁移
-- [x] NetworkClient：50MB 磁盘缓存 + 连接池
-- [x] HawkLegacyMigrator：从 Hawk2/hawk SharedPreferences 尽量迁移简单配置
-
-- [x] GridFragment：`setItemViewCacheSize(20)`
-- [x] release：`minifyEnabled` + `shrinkResources` + ProGuard 补充 keep
-
-- [x] 播放器去掉 requestFocusFromTouch（手机触控更自然）

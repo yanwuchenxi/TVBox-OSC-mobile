@@ -1,7 +1,7 @@
 package com.github.tvbox.osc.bean;
 
-import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
+import com.orhanobut.hawk.Hawk;
 
 import java.util.LinkedHashMap;
 
@@ -18,7 +18,7 @@ public class IJKCode {
     public void selected(boolean selected) {
         this.selected = selected;
         if (selected) {
-            ConfigStore.putString(HawkConfig.IJK_CODEC, name);
+            Hawk.put(HawkConfig.IJK_CODEC, name);
         }
     }
 

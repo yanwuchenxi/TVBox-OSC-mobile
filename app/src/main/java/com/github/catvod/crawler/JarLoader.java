@@ -93,35 +93,6 @@ public class JarLoader {
             }
         }
         try {
-            // 本地 clan / 绝对路径 / 127.0.0.1/file/ 优先读磁盘，避免 OkGo 连 9978 失败
-            File local = com.github.tvbox.osc.api.ApiConfig.resolveLocalSpiderFile(jar);
-            if (local != null && local.isFile()) {
-                java.io.InputStream lis = new java.io.FileInputStream(local);
-                OutputStream os = new FileOutputStream(cache);
-                try {
-                    byte[] buffer = new byte[8192];
-                    int length;
-                    while ((length = lis.read(buffer)) > 0) {
-                        os.write(buffer, 0, length);
-                    }
-                } finally {
-                    try { lis.close(); os.close(); } catch (Exception ignored) {}
-                }
-                loadClassLoader(cache.getAbsolutePath(), key);
-                return classLoaders.get(key);
-            }
-            if (jar.startsWith("http://") || jar.startsWith("https://")) {
-                byte[] raw = com.github.tvbox.osc.util.NetworkClient.getBytesSync(jar, null);
-                OutputStream os = new FileOutputStream(cache);
-                try {
-                    os.write(raw);
-                } finally {
-                    try { os.close(); } catch (Exception ignored) {}
-                }
-                loadClassLoader(cache.getAbsolutePath(), key);
-                return classLoaders.get(key);
-            }
-            // 最后回退 OkGo
             Response response = OkGo.<File>get(jar).execute();
             InputStream is = response.body().byteStream();
             OutputStream os = new FileOutputStream(cache);

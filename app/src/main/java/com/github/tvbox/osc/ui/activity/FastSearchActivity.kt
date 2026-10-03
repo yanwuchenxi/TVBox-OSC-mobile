@@ -34,7 +34,6 @@ import com.github.tvbox.osc.ui.dialog.DoubanSuggestDialog
 import com.github.tvbox.osc.ui.dialog.SearchCheckboxDialog
 import com.github.tvbox.osc.ui.dialog.SearchSuggestionsDialog
 import com.github.tvbox.osc.util.FastClickCheckUtil
-import com.github.tvbox.osc.util.ConfigStore
 import com.github.tvbox.osc.util.HawkConfig
 import com.github.tvbox.osc.util.SearchHelper
 import com.github.tvbox.osc.viewmodel.SourceViewModel
@@ -48,6 +47,7 @@ import com.lxj.xpopup.interfaces.SimpleCallback
 import com.lzy.okgo.OkGo
 import com.lzy.okgo.callback.AbsCallback
 import com.lzy.okgo.callback.StringCallback
+import com.orhanobut.hawk.Hawk
 import com.zhy.view.flowlayout.FlowLayout
 import com.zhy.view.flowlayout.TagAdapter
 import okhttp3.Response
@@ -232,7 +232,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     }
 
     private fun initHistorySearch() {
-        val mSearchHistory: List<String> = ConfigStore.getStringList(HawkConfig.HISTORY_SEARCH)
+        val mSearchHistory: List<String> = Hawk.get(HawkConfig.HISTORY_SEARCH, ArrayList())
         mBinding.llHistory.visibility = if (mSearchHistory.isNotEmpty()) View.VISIBLE else View.GONE
         mBinding.flHistory.adapter = object : TagAdapter<String?>(mSearchHistory) {
             override fun getView(parent: FlowLayout, position: Int, s: String?): View {
@@ -249,7 +249,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             true
         }
         findViewById<View>(R.id.iv_clear_history).setOnClickListener { view: View ->
-            ConfigStore.putStringList(HawkConfig.HISTORY_SEARCH, ArrayList())
+            Hawk.put(HawkConfig.HISTORY_SEARCH, ArrayList<Any>())
             //FlowLayout及其adapter貌似没有清空数据的api,简单粗暴重置
             view.postDelayed({ initHistorySearch() }, 300)
         }
@@ -368,7 +368,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
 
     private fun saveSearchHistory(searchWord: String?) {
         if (!searchWord.isNullOrEmpty()) {
-            val history = ConfigStore.getStringList(HawkConfig.HISTORY_SEARCH)
+            val history = Hawk.get(HawkConfig.HISTORY_SEARCH, ArrayList<String?>())
             if (!history.contains(searchWord)) {
                 history.add(0, searchWord)
             } else {
@@ -378,7 +378,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
             if (history.size > 30) {
                 history.removeAt(30)
             }
-            ConfigStore.putStringList(HawkConfig.HISTORY_SEARCH, history.filterNotNull())
+            Hawk.put(HawkConfig.HISTORY_SEARCH, history)
         }
     }
 
@@ -416,7 +416,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         if (mSearchSuggestionsDialog != null && mSearchSuggestionsDialog!!.isShow) {
             mSearchSuggestionsDialog!!.dismiss()
         }
-        if (!ConfigStore.getBool(HawkConfig.PRIVATE_BROWSING, false)) { //无痕浏览不存搜索历史
+        if (!Hawk.get(HawkConfig.PRIVATE_BROWSING, false)) { //无痕浏览不存搜索历史
             saveSearchHistory(title)
         }
         hideHotAndHistorySearch(true)

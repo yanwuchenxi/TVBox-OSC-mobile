@@ -5,8 +5,8 @@ import android.view.ViewGroup;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
-import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
+import com.orhanobut.hawk.Hawk;
 
 /**
  * 嗅探 WebView 通用设置，从 PlayFragment.configWebViewSys 拆出。
@@ -16,7 +16,7 @@ public final class SniffWebViewConfig {
     }
 
     public static ViewGroup.LayoutParams layoutParams() {
-        boolean debug = ConfigStore.getBool(HawkConfig.DEBUG_OPEN, false);
+        boolean debug = Hawk.get(HawkConfig.DEBUG_OPEN, false);
         return debug
                 ? new ViewGroup.LayoutParams(800, 400)
                 : new ViewGroup.LayoutParams(1, 1);
@@ -40,7 +40,7 @@ public final class SniffWebViewConfig {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             settings.setMediaPlaybackRequiresUserGesture(false);
         }
-        settings.setBlockNetworkImage(!ConfigStore.getBool(HawkConfig.DEBUG_OPEN, false));
+        settings.setBlockNetworkImage(!Hawk.get(HawkConfig.DEBUG_OPEN, false));
         settings.setUseWideViewPort(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
         settings.setSupportMultipleWindows(false);

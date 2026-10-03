@@ -16,7 +16,7 @@ import com.github.tvbox.osc.util.HawkConfig;
 import com.lxj.xpopup.XPopup;
 import com.lxj.xpopup.core.BottomPopupView;
 import com.lxj.xpopup.interfaces.OnInputConfirmListener;
-import com.github.tvbox.osc.util.ConfigStore;
+import com.orhanobut.hawk.Hawk;
 
 import java.util.ArrayList;
 
@@ -59,14 +59,14 @@ public class ApiHistoryDialog extends BottomPopupView {
         TitleWithDelAdapter adapter = new TitleWithDelAdapter();
         binding.rv.setAdapter(adapter);
 
-        mLiveHistory = ConfigStore.getStringList(HawkConfig.LIVE_HISTORY);
+        mLiveHistory = Hawk.get(HawkConfig.LIVE_HISTORY, new ArrayList<String>());
         mLiveHistory.remove(mPreApi);
         adapter.setNewData(mLiveHistory);
         adapter.setOnItemChildClickListener((adapter1, view, position) -> {
             if (view.getId() == R.id.tvDel) {
                 mLiveHistory.remove(position);
                 adapter1.notifyDataSetChanged();
-                ConfigStore.putStringList(HawkConfig.LIVE_HISTORY, mLiveHistory);
+                Hawk.put(HawkConfig.LIVE_HISTORY, mLiveHistory);
             }else {
                 mOnInputConfirmListener.onConfirm(mLiveHistory.get(position));
                 dismiss();
@@ -77,7 +77,7 @@ public class ApiHistoryDialog extends BottomPopupView {
     @Override
     public void onDestroy() {
         mLiveHistory.add(0,mPreApi);
-        ConfigStore.putStringList(HawkConfig.LIVE_HISTORY, mLiveHistory);
+        Hawk.put(HawkConfig.LIVE_HISTORY, mLiveHistory);
         super.onDestroy();
     }
 }
