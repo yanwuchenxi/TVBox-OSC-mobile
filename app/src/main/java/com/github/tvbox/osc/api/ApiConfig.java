@@ -89,6 +89,12 @@ public class ApiConfig {
         return instance;
     }
 
+    public static boolean looksLikeJson(String s) {
+        if (s == null) return false;
+        String t = s.trim();
+        return !t.isEmpty() && (t.charAt(0) == '{' || t.charAt(0) == '[');
+    }
+
     public static String FindResult(String json, String configKey) {
         String content = json == null ? "" : json.trim();
         try {
