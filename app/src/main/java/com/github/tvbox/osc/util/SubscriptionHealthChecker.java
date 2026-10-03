@@ -46,9 +46,36 @@ public class SubscriptionHealthChecker {
                 doneOne(main, callback, item, index, left, ok, fail);
                 continue;
             }
+            if (url.startsWith("clan://localhost/")) {
+                try {
+                    String rel = url.substring("clan://localhost/".length());
+                    try {
+                        rel = java.net.URLDecoder.decode(rel, "UTF-8");
+                    } catch (Throwable ignored) {
+                    }
+                    while (rel.startsWith("/")) rel = rel.substring(1);
+                    java.io.File f = new java.io.File(android.os.Environment.getExternalStorageDirectory(), rel);
+                    if (!f.exists()) f = new java.io.File("/storage/emulated/0/" + rel);
+                    if (f.exists() && f.isFile() && f.length() > 0) {
+                        item.setHealthStatus(Subscription.STATUS_OK);
+                        item.setHealthMsg("本地文件有效");
+                        ok.incrementAndGet();
+                    } else {
+                        item.setHealthStatus(Subscription.STATUS_FAIL);
+                        item.setHealthMsg("本地文件不存在");
+                        fail.incrementAndGet();
+                    }
+                } catch (Throwable e) {
+                    item.setHealthStatus(Subscription.STATUS_FAIL);
+                    item.setHealthMsg("本地路径无效");
+                    fail.incrementAndGet();
+                }
+                doneOne(main, callback, item, index, left, ok, fail);
+                continue;
+            }
             if (url.startsWith("clan://")) {
                 item.setHealthStatus(Subscription.STATUS_OK);
-                item.setHealthMsg("本地文件");
+                item.setHealthMsg("局域网文件");
                 ok.incrementAndGet();
                 doneOne(main, callback, item, index, left, ok, fail);
                 continue;

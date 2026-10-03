@@ -144,6 +144,44 @@ public class ApiConfig {
                 th.printStackTrace();
             }
         }
+        // clan://localhost/ 直接读本地文件，避免依赖本地 HTTP 服务与中文路径编码问题
+        if (apiUrl.startsWith("clan://localhost/")) {
+            final String finalApiUrlClan = apiUrl;
+            final File finalCacheClan = cache;
+            new Thread(() -> {
+                try {
+                    String result = readClanLocalhostFile(finalApiUrlClan);
+                    if (result == null) result = "";
+                    if (!com.github.tvbox.osc.util.AES.isJson(result.trim())) {
+                        result = FindResult(result, null);
+                    }
+                    if (result == null || !com.github.tvbox.osc.util.AES.isJson(result.trim())) {
+                        throw new IllegalStateException("本地配置不是合法 JSON 或文件不存在: " + finalApiUrlClan);
+                    }
+                    result = clanContentFix(clanToAddress(finalApiUrlClan), result);
+                    result = fixContentPath(finalApiUrlClan, result);
+                    parseJson(finalApiUrlClan, result);
+                    try {
+                        File cacheDir = finalCacheClan.getParentFile();
+                        if (cacheDir != null && !cacheDir.exists()) cacheDir.mkdirs();
+                        if (finalCacheClan.exists()) finalCacheClan.delete();
+                        FileOutputStream fos = new FileOutputStream(finalCacheClan);
+                        fos.write(result.getBytes("UTF-8"));
+                        fos.flush();
+                        fos.close();
+                    } catch (Throwable ignored) {
+                    }
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(callback::success);
+                } catch (Throwable th) {
+                    th.printStackTrace();
+                    String msg = th.getMessage();
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                            callback.error(msg != null && !msg.isEmpty() ? msg : "本地配置读取失败"));
+                }
+            }).start();
+            return;
+        }
+
         String TempKey = null, configUrl = "", pk = ";pk;";
         if (apiUrl.contains(pk)) {
             String[] a = apiUrl.split(pk);
@@ -808,6 +846,35 @@ private void parseJson(String apiUrl, String jsonStr) {
                 return code;
         }
         return ijkCodes.get(0);
+    }
+
+
+    /** 将 clan://localhost/相对路径 映射到外部存储真实文件并读取文本 */
+    private static String readClanLocalhostFile(String clanUrl) throws Exception {
+        if (clanUrl == null || !clanUrl.startsWith("clan://localhost/")) return null;
+        String rel = clanUrl.substring("clan://localhost/".length());
+        try {
+            rel = java.net.URLDecoder.decode(rel, "UTF-8");
+        } catch (Throwable ignored) {
+        }
+        while (rel.startsWith("/")) rel = rel.substring(1);
+        java.io.File f = new java.io.File(android.os.Environment.getExternalStorageDirectory(), rel);
+        if (!f.exists() || !f.isFile()) {
+            f = new java.io.File("/storage/emulated/0/" + rel);
+        }
+        if (!f.exists() || !f.isFile()) {
+            throw new java.io.FileNotFoundException("找不到本地配置: " + f.getAbsolutePath());
+        }
+        StringBuilder sb = new StringBuilder();
+        java.io.BufferedReader br = new java.io.BufferedReader(
+                new java.io.InputStreamReader(new java.io.FileInputStream(f), "UTF-8"));
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line);
+            sb.append("\n");
+        }
+        br.close();
+        return sb.toString();
     }
 
     String clanToAddress(String lanLink) {

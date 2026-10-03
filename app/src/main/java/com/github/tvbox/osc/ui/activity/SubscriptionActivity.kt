@@ -1,6 +1,11 @@
 package com.github.tvbox.osc.ui.activity
 
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
+import androidx.activity.result.contract.ActivityResultContracts
 import android.text.TextUtils
 import android.view.View
 import com.blankj.utilcode.util.ClipboardUtils
@@ -32,6 +37,7 @@ import com.lzy.okgo.callback.AbsCallback
 import com.lzy.okgo.model.Response
 import com.obsez.android.lib.filechooser.ChooserDialog
 import com.github.tvbox.osc.util.ConfigStore
+import java.io.File
 import java.util.function.Consumer
 
 class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
@@ -42,6 +48,14 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
         (ConfigStore.getSubscriptions() ?: ArrayList()).toMutableList()
     private var mSubscriptionAdapter = SubscriptionAdapter()
     private val mSources: MutableList<Source> = ArrayList()
+    private var pendingPickChecked = false
+
+    /** 系统文档选择器，避免 filechooser 在 Android 11+ 误报 SDCard 权限被拒 */
+    private val openDocumentLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            if (uri == null) return@registerForActivityResult
+            handlePickedDocument(uri, pendingPickChecked)
+        }
 
     override fun init() {
 
@@ -196,27 +210,111 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
      * @param checked 与showPermissionTipPopup一样,只记录并传递选中状态
      */
     private fun pickFile(checked: Boolean) {
-        ChooserDialog(this@SubscriptionActivity, R.style.FileChooser)
-            .withFilter(false, false, "txt", "json")
-            .withStartFile(
-                if (TextUtils.isEmpty(ConfigStore.getString("before_selected_path", ""))) "/storage/emulated/0/Download" else ConfigStore.getString(
-                    "before_selected_path", ""
-                )
-            )
-            .withChosenListener(ChooserDialog.Result { _, pathFile ->
-                ConfigStore.putString("before_selected_path", pathFile.parent ?: "")
-                val clanPath =
-                    pathFile.absolutePath.replace("/storage/emulated/0", "clan://localhost")
-                for (item in mSubscriptions) {
-                    if (item.url == clanPath) {
-                        ToastUtils.showLong("订阅地址与" + item.name + "相同")
-                        return@Result
-                    }
+        pendingPickChecked = checked
+        // 优先系统 SAF，不依赖 WRITE_EXTERNAL 旧权限检查
+        try {
+            openDocumentLauncher.launch(arrayOf("application/json", "text/plain", "text/*", "*/*"))
+        } catch (e: Exception) {
+            LogUtils.e(e)
+            // 回退：若已具备所有文件访问权限，再尝试旧选择器
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
+                fallbackChooserDialog(checked)
+            } else {
+                ToastUtils.showLong("无法打开文件选择器，请在系统设置中授予「所有文件访问」权限")
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                    intent.data = Uri.parse("package:$packageName")
+                    startActivity(intent)
+                } catch (_: Exception) {
+                    XXPermissions.startPermissionActivity(this, listOf(Permission.MANAGE_EXTERNAL_STORAGE))
                 }
-                addSubscription(pathFile.name, clanPath, checked)
-            })
-            .build()
-            .show()
+            }
+        }
+    }
+
+    private fun fallbackChooserDialog(checked: Boolean) {
+        try {
+            ChooserDialog(this@SubscriptionActivity, R.style.FileChooser)
+                .withFilter(false, false, "txt", "json")
+                .withStartFile(
+                    if (TextUtils.isEmpty(ConfigStore.getString("before_selected_path", "")))
+                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath
+                    else ConfigStore.getString("before_selected_path", "")
+                )
+                .withChosenListener(ChooserDialog.Result { _, pathFile ->
+                    ConfigStore.putString("before_selected_path", pathFile.parent ?: "")
+                    val abs = pathFile.absolutePath
+                    val clanPath = toClanLocalhost(abs)
+                    for (item in mSubscriptions) {
+                        if (item.url == clanPath) {
+                            ToastUtils.showLong("订阅地址与" + item.name + "相同")
+                            return@Result
+                        }
+                    }
+                    addSubscription(pathFile.name, clanPath, checked)
+                })
+                .build()
+                .show()
+        } catch (e: Exception) {
+            LogUtils.e(e)
+            ToastUtils.showLong("文件选择失败: ${e.message}")
+        }
+    }
+
+    private fun handlePickedDocument(uri: Uri, checked: Boolean) {
+        try {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (_: Exception) {
+        }
+        try {
+            val name = queryDisplayName(uri) ?: "本地订阅.json"
+            // 优先复制到外部存储 TVBoxSubs 目录，保证 clan://localhost 可读
+            val destDir = File(Environment.getExternalStorageDirectory(), "TVBoxSubs")
+            if (!destDir.exists()) destDir.mkdirs()
+            val dest = File(destDir, name)
+            contentResolver.openInputStream(uri)?.use { input ->
+                dest.outputStream().use { output -> input.copyTo(output) }
+            }
+            if (!dest.exists() || dest.length() <= 0) {
+                ToastUtils.showLong("读取所选文件失败")
+                return
+            }
+            val clanPath = toClanLocalhost(dest.absolutePath)
+            for (item in mSubscriptions) {
+                if (item.url == clanPath) {
+                    ToastUtils.showLong("订阅地址与" + item.name + "相同")
+                    return
+                }
+            }
+            ConfigStore.putString("before_selected_path", dest.parent ?: "")
+            addSubscription(name, clanPath, checked)
+            ToastUtils.showShort("已添加本地订阅")
+        } catch (e: Exception) {
+            LogUtils.e(e)
+            ToastUtils.showLong("添加本地订阅失败: ${e.message}")
+        }
+    }
+
+    private fun queryDisplayName(uri: Uri): String? {
+        contentResolver.query(uri, null, null, null, null)?.use { c ->
+            val idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0 && c.moveToFirst()) return c.getString(idx)
+        }
+        return null
+    }
+
+    private fun toClanLocalhost(absolutePath: String): String {
+        val root = Environment.getExternalStorageDirectory().absolutePath
+        return if (absolutePath.startsWith(root)) {
+            "clan://localhost/" + absolutePath.substring(root.length).trimStart('/')
+        } else if (absolutePath.startsWith("/storage/emulated/0")) {
+            absolutePath.replace("/storage/emulated/0", "clan://localhost")
+        } else {
+            "clan://localhost/" + absolutePath.trimStart('/')
+        }
     }
 
     private fun addSubscription(name: String, url: String, checked: Boolean) {
@@ -439,11 +537,14 @@ class SubscriptionActivity : BaseVbActivity<ActivitySubscriptionBinding>() {
                         }
 
                         override fun chooseLocal(checked: Boolean) {
-                            if (!XXPermissions.isGranted(
-                                    mContext,
-                                    Permission.MANAGE_EXTERNAL_STORAGE
-                                )
-                            ) {
+                            // Android 11+ 以「所有文件访问」为准；XXPermissions 有时误判
+                            val hasAllFiles = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                Environment.isExternalStorageManager()
+                            } else {
+                                XXPermissions.isGranted(mContext, Permission.MANAGE_EXTERNAL_STORAGE)
+                                        || XXPermissions.isGranted(mContext, Permission.WRITE_EXTERNAL_STORAGE)
+                            }
+                            if (!hasAllFiles) {
                                 showPermissionTipPopup(checked)
                             } else {
                                 pickFile(checked)
