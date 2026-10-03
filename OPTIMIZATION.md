@@ -52,3 +52,7 @@
 - [x] 继续清理：HOME_API、DEFAULT_PARSE、EPG_URL、字幕、健康缓存、权限标记、直播频道播放配置等迁入 ConfigStore
 
 - [x] **移除 Hawk 依赖**：ConfigStore 纯 SharedPreferences；App 默认值与 JS local 存储全部迁移
+
+- [x] 移除 Hawk 依赖：ConfigStore 纯 SharedPreferences；App 默认值与 JS local 存储全部迁移
+- [x] NetworkClient：50MB 磁盘缓存 + 连接池
+- [x] HawkLegacyMigrator：从 Hawk2/hawk SharedPreferences 尽量迁移简单配置

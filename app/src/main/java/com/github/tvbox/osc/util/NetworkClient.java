@@ -1,24 +1,30 @@
 package com.github.tvbox.osc.util;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.Cache;
+import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * 全局单一 OkHttpClient，逐步替代 OkGo 散落调用。
+ * 全局单一 OkHttpClient：磁盘缓存 + 连接池，逐步替代 OkGo 散落调用。
  */
 public final class NetworkClient {
     private static volatile OkHttpClient client;
+    private static File cacheDir;
     private static final ExecutorService EXEC = Executors.newCachedThreadPool();
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    private static final long CACHE_SIZE = 50L * 1024 * 1024;
 
     public interface StringCallback {
         void onSuccess(int code, String body);
@@ -29,17 +35,32 @@ public final class NetworkClient {
     private NetworkClient() {
     }
 
+    /** 建议在 Application 中调用，以便启用磁盘缓存 */
+    public static void init(Context context) {
+        if (context == null) return;
+        cacheDir = new File(context.getApplicationContext().getCacheDir(), "okhttp_cache");
+    }
+
     public static OkHttpClient get() {
         if (client == null) {
             synchronized (NetworkClient.class) {
                 if (client == null) {
-                    client = new OkHttpClient.Builder()
+                    OkHttpClient.Builder b = new OkHttpClient.Builder()
                             .connectTimeout(12, TimeUnit.SECONDS)
                             .readTimeout(20, TimeUnit.SECONDS)
                             .writeTimeout(20, TimeUnit.SECONDS)
+                            .connectionPool(new ConnectionPool(8, 5, TimeUnit.MINUTES))
                             .followRedirects(true)
-                            .followSslRedirects(true)
-                            .build();
+                            .followSslRedirects(true);
+                    if (cacheDir != null) {
+                        try {
+                            //noinspection ResultOfMethodCallIgnored
+                            cacheDir.mkdirs();
+                            b.cache(new Cache(cacheDir, CACHE_SIZE));
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                    client = b.build();
                 }
             }
         }

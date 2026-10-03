@@ -19,6 +19,8 @@ import com.github.tvbox.osc.ui.activity.MainActivity;
 import com.github.tvbox.osc.util.EpgUtil;
 import com.github.tvbox.osc.util.FileUtils;
 import com.github.tvbox.osc.util.ConfigStore;
+import com.github.tvbox.osc.util.HawkLegacyMigrator;
+import com.github.tvbox.osc.util.NetworkClient;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.OkGoHelper;
@@ -106,6 +108,8 @@ public class App extends MultiDexApplication {
 
     private void initParams() {
         ConfigStore.init(this);
+        NetworkClient.init(this);
+        HawkLegacyMigrator.migrateIfNeeded(this);
         ConfigStore.putBool(HawkConfig.DEBUG_OPEN, false);
 
         ConfigStore.putDefault(HawkConfig.HOME_REC, 0);                  //推荐: 0=豆瓣热播, 1=站点推荐
