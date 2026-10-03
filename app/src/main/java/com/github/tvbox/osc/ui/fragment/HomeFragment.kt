@@ -187,7 +187,10 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                         initData()
                     }
                 } else {
-                    showTipDialog(msg)
+                    mHandler.post {
+                        ToastUtils.showLong(msg)
+                        showTipDialog(msg)
+                    }
                 }
             }
         }, activity)
@@ -213,7 +216,8 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding>() {
                     override fun error(msg: String) {
                         jarInitOk = true
                         mHandler.post {
-                            ToastUtils.showShort("更新订阅失败")
+                            val tip = if (msg.isNullOrBlank()) "爬虫包加载失败(有站可能无数据)" else "爬虫包加载失败: $msg"
+                            ToastUtils.showLong(tip)
                             initData()
                         }
                     }

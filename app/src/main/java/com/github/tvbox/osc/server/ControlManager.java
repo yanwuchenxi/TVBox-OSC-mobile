@@ -49,6 +49,11 @@ public class ControlManager {
     }
 
     public String getAddress(boolean local) {
+        if (mServer == null) {
+            // 服务未启动时不要 NPE，返回默认端口地址供路径拼接
+            return local ? "http://127.0.0.1:" + com.github.tvbox.osc.server.RemoteServer.serverPort + "/"
+                    : "http://127.0.0.1:" + com.github.tvbox.osc.server.RemoteServer.serverPort + "/";
+        }
         return local ? mServer.getLoadAddress() : mServer.getServerAddress();
     }
 

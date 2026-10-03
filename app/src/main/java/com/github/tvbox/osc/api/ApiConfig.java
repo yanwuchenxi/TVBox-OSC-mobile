@@ -170,7 +170,9 @@ public class ApiConfig {
             return;
         }
         File cache = new File(App.getInstance().getFilesDir().getAbsolutePath() + "/" + MD5.encode(apiUrl));
-        if (useCache && cache.exists()) {
+        // 本地 clan 禁止用旧缓存（常含失效的 127.0.0.1:端口，导致有站无数据且无提示）
+        boolean allowCache = useCache && !apiUrl.startsWith("clan://localhost/");
+        if (allowCache && cache.exists()) {
             try {
                 parseJson(apiUrl, cache);
                 callback.success();
@@ -206,34 +208,36 @@ public class ApiConfig {
         final String finalConfigUrl = configUrl;
         final String finalConfigKey = configKey;
 
-        // clan://localhost 不依赖 127.0.0.1:9978：直读磁盘（服务未启动会 Failed to connect）
+        // clan://localhost：只读磁盘，禁止依赖 9978；失败必须明确回调 error
         if (apiUrl.startsWith("clan://localhost/")) {
             new Thread(() -> {
                 android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
                 try {
-                    // 尽量启动本地服务，供后续相对 jar 的 HTTP 回退使用
                     try {
                         com.github.tvbox.osc.server.ControlManager.get().startServer();
                     } catch (Throwable ignored) {
                     }
                     String result = readClanLocalhostFile(finalApiUrl);
-                    if (result == null) result = "";
+                    if (result == null || result.trim().isEmpty()) {
+                        throw new IllegalStateException("本地文件为空或不存在: " + finalApiUrl);
+                    }
                     if (finalConfigKey != null) {
                         result = FindResult(result, finalConfigKey);
                     } else if (!looksLikeJson(result)) {
                         String dec = FindResult(result, null);
                         if (dec != null && looksLikeJson(dec)) result = dec;
                     }
-                    try {
-                        result = clanContentFix(clanToAddress(finalApiUrl), result);
-                    } catch (Throwable ignored) {
-                        // 服务地址不可用时跳过 clan 前缀替换，仍靠 fixContentPath + 本地 jar 解析
+                    if (!looksLikeJson(result)) {
+                        throw new IllegalStateException("本地文件不是 JSON 配置");
                     }
+                    // 不要调用会触发 NPE/连 9978 的 clanToAddress 强依赖；相对路径用 clan 前缀
                     result = fixContentPath(finalApiUrl, result);
                     parseJson(finalApiUrl, result);
+                    int siteCount = sourceBeanList != null ? sourceBeanList.size() : 0;
+                    if (siteCount <= 0) {
+                        throw new IllegalStateException("配置已读取但 sites 为空");
+                    }
                     try {
-                        File cacheDir = finalCache.getParentFile();
-                        if (cacheDir != null && !cacheDir.exists()) cacheDir.mkdirs();
                         if (finalCache.exists()) finalCache.delete();
                         FileOutputStream fos = new FileOutputStream(finalCache);
                         fos.write(result.getBytes("UTF-8"));
@@ -241,20 +245,28 @@ public class ApiConfig {
                         fos.close();
                     } catch (Throwable ignored) {
                     }
-                    main.post(callback::success);
-                } catch (Throwable th) {
-                    th.printStackTrace();
-                    if (finalCache.exists()) {
+                    final int sc = siteCount;
+                    main.post(() -> {
                         try {
-                            parseJson(finalApiUrl, finalCache);
-                            main.post(callback::success);
-                            return;
+                            android.widget.Toast.makeText(
+                                    App.getInstance(),
+                                    "本地订阅已加载 " + sc + " 个站点",
+                                    android.widget.Toast.LENGTH_SHORT).show();
                         } catch (Throwable ignored) {
                         }
+                        callback.success();
+                    });
+                } catch (Throwable th) {
+                    th.printStackTrace();
+                    // 本地失败时删除坏缓存，禁止静默用旧缓存“成功”
+                    try {
+                        if (finalCache.exists()) finalCache.delete();
+                    } catch (Throwable ignored) {
                     }
                     String msg = th.getMessage();
-                    main.post(() -> callback.error(
-                            msg != null && !msg.isEmpty() ? ("本地配置失败: " + msg) : "本地配置读取失败"));
+                    if (msg == null || msg.isEmpty()) msg = th.getClass().getSimpleName();
+                    final String err = "本地配置失败: " + msg;
+                    main.post(() -> callback.error(err));
                 }
             }).start();
             return;
@@ -929,13 +941,30 @@ private void parseJson(String apiUrl, String jsonStr) {
         } catch (Throwable ignored) {
         }
         while (rel.startsWith("/")) rel = rel.substring(1);
-        java.io.File f = new java.io.File(android.os.Environment.getExternalStorageDirectory(), rel);
-        if (!f.exists() || !f.isFile()) {
-            f = new java.io.File("/storage/emulated/0/" + rel);
+        java.util.List<java.io.File> candidates = new java.util.ArrayList<>();
+        java.io.File ext = android.os.Environment.getExternalStorageDirectory();
+        if (ext != null) candidates.add(new java.io.File(ext, rel));
+        candidates.add(new java.io.File("/storage/emulated/0/" + rel));
+        candidates.add(new java.io.File("/sdcard/" + rel));
+        // 兼容订阅选择器复制到 TVBoxSubs 的情况
+        if (!rel.startsWith("TVBoxSubs/")) {
+            if (ext != null) candidates.add(new java.io.File(ext, "TVBoxSubs/" + new java.io.File(rel).getName()));
+            candidates.add(new java.io.File("/storage/emulated/0/TVBoxSubs/" + new java.io.File(rel).getName()));
         }
-        if (!f.exists() || !f.isFile()) {
-            throw new java.io.FileNotFoundException("找不到本地配置: " + f.getAbsolutePath());
+        java.io.File found = null;
+        StringBuilder tried = new StringBuilder();
+        for (java.io.File f : candidates) {
+            if (tried.length() > 0) tried.append(" | ");
+            tried.append(f.getAbsolutePath());
+            if (f.isFile() && f.length() > 0) {
+                found = f;
+                break;
+            }
         }
+        if (found == null) {
+            throw new java.io.FileNotFoundException("找不到本地配置, 已尝试: " + tried);
+        }
+        java.io.File f = found;
         StringBuilder sb = new StringBuilder();
         java.io.BufferedReader br = new java.io.BufferedReader(
                 new java.io.InputStreamReader(new java.io.FileInputStream(f), "UTF-8"));
