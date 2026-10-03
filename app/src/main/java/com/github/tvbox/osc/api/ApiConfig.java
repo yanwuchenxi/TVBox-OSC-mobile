@@ -18,6 +18,7 @@ import com.github.tvbox.osc.server.ControlManager;
 import com.github.tvbox.osc.util.AES;
 import com.github.tvbox.osc.util.AdBlocker;
 import com.github.tvbox.osc.util.DefaultConfig;
+import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.MD5;
 import com.github.tvbox.osc.util.VideoParseRuler;
@@ -359,7 +360,7 @@ public class ApiConfig {
         }
         // 直播源
         liveChannelGroupList.clear();           //修复从后台切换重复加载频道列表
-        String liveURL = Hawk.get(HawkConfig.LIVE_URL, "");
+        String liveURL = ConfigStore.getString(HawkConfig.LIVE_URL, "");
         //String epgURL  = Hawk.get(HawkConfig.EPG_URL, "");
 
         String liveURL_final = null;
@@ -546,7 +547,7 @@ public class ApiConfig {
         if(ijkCodes==null){
             ijkCodes = new ArrayList<>();
             boolean foundOldSelect = false;
-            String ijkCodec = Hawk.get(HawkConfig.IJK_CODEC, "");
+            String ijkCodec = ConfigStore.getString(HawkConfig.IJK_CODEC, "");
             JsonArray ijkJsonArray = infoJson.has("ijk")?infoJson.get("ijk").getAsJsonArray():defaultJson.get("ijk").getAsJsonArray();
             for (JsonElement opt : ijkJsonArray) {
                 JsonObject obj = (JsonObject) opt;
@@ -742,7 +743,7 @@ public class ApiConfig {
 
         List<IJKCode> ijkCodes = new ArrayList<>();
         boolean foundOldSelect = false;
-        String ijkCodec = Hawk.get(HawkConfig.IJK_CODEC, "");
+        String ijkCodec = ConfigStore.getString(HawkConfig.IJK_CODEC, "");
         JsonArray ijkJsonArray = defaultJson.get("ijk").getAsJsonArray();
         for (JsonElement opt : ijkJsonArray) {
             JsonObject obj = (JsonObject) opt;
@@ -781,7 +782,7 @@ public class ApiConfig {
     }
 
     public IJKCode getCurrentIJKCode() {
-        String codeName = Hawk.get(HawkConfig.IJK_CODEC, "");
+        String codeName = ConfigStore.getString(HawkConfig.IJK_CODEC, "");
         return getIJKCodec(codeName);
     }
 

@@ -1,5 +1,6 @@
 package com.github.tvbox.osc.player;
 
+import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.M3u8AdFilter;
 import com.orhanobut.hawk.Hawk;
@@ -12,8 +13,8 @@ public final class M3u8PurifyHelper {
     }
 
     public static int currentLevel() {
-        return Hawk.get(HawkConfig.VIDEO_PURIFY_LEVEL,
-                Hawk.get(HawkConfig.VIDEO_PURIFY, true) ? 1 : 0);
+        return ConfigStore.getInt(HawkConfig.VIDEO_PURIFY_LEVEL,
+                ConfigStore.getBool(HawkConfig.VIDEO_PURIFY, true) ? 1 : 0);
     }
 
     public static boolean isEnabled() {

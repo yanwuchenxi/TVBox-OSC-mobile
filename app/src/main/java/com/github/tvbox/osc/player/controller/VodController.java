@@ -31,6 +31,7 @@ import com.github.tvbox.osc.ui.adapter.SelectDialogAdapter;
 import com.github.tvbox.osc.ui.dialog.SelectDialog;
 import com.github.tvbox.osc.ui.widget.MyBatteryView;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
+import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.PlayerHelper;
 import com.github.tvbox.osc.util.ScreenUtils;
@@ -193,7 +194,7 @@ public class VodController extends BaseController {
     protected void initView() {
         super.initView();
         View pip = findViewById(R.id.pip);
-        pip.setVisibility((Utils.supportsPiPMode() && Hawk.get(HawkConfig.BACKGROUND_PLAY_TYPE, 0) == 2)?VISIBLE:GONE);
+        pip.setVisibility((Utils.supportsPiPMode() && ConfigStore.getInt(HawkConfig.BACKGROUND_PLAY_TYPE, 0) == 2)?VISIBLE:GONE);
         mMyBatteryView = findViewById(R.id.battery);
         mTopRightDeviceInfo = findViewById(R.id.container_top_right_device_info);
         mLlSpeed = findViewById(R.id.ll_speed);
@@ -984,7 +985,7 @@ public class VodController extends BaseController {
             fromLongPress = true;
             try {
                 speed_old = (float) mPlayerConfig.getDouble("sp");
-                float speed = Hawk.get(HawkConfig.VIDEO_SPEED, 2.0f);
+                float speed = ConfigStore.getFloat(HawkConfig.VIDEO_SPEED, 2.0f);
                 mPlayerConfig.put("sp", speed);
                 updatePlayerCfgView();
                 listener.updatePlayerCfg();
@@ -1062,7 +1063,7 @@ public class VodController extends BaseController {
 
     public void increaseTime(String type) {
         try {
-            int step = Hawk.get(HawkConfig.PLAY_TIME_STEP, 1);
+            int step = ConfigStore.getInt(HawkConfig.PLAY_TIME_STEP, 1);
             int time = mPlayerConfig.getInt(type);
             time += step;
             if (time > 30 * 10)
@@ -1077,7 +1078,7 @@ public class VodController extends BaseController {
 
     public void decreaseTime(String type) {
         try {
-            int step = Hawk.get(HawkConfig.PLAY_TIME_STEP, 1);
+            int step = ConfigStore.getInt(HawkConfig.PLAY_TIME_STEP, 1);
             int time = mPlayerConfig.getInt(type);
             time -= step;
             if (time < 0)

@@ -19,6 +19,7 @@ import com.github.tvbox.osc.bean.MovieSort;
 import com.github.tvbox.osc.bean.SourceBean;
 import com.github.tvbox.osc.event.RefreshEvent;
 import com.github.tvbox.osc.util.DefaultConfig;
+import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.NetworkClient;
@@ -124,7 +125,7 @@ public class SourceViewModel extends ViewModel {
                     } finally {
                         if (sortJson != null) {
                             AbsSortXml sortXml = sortJson(sortResult, sortJson);
-                            if (sortXml != null && Hawk.get(HawkConfig.HOME_REC, 0) == 1) {
+                            if (sortXml != null && ConfigStore.getInt(HawkConfig.HOME_REC, 0) == 1) {
                                 AbsXml absXml = json(null, sortJson, sourceBean.getKey());
                                 if (absXml != null && absXml.movie != null && absXml.movie.videoList != null && absXml.movie.videoList.size() > 0) {
                                     sortXml.videoList = absXml.movie.videoList;
@@ -163,7 +164,7 @@ public class SourceViewModel extends ViewModel {
                             } else if (type == 1) {
                                 sortXml = sortJson(sortResult, body);
                             }
-                            if (sortXml != null && Hawk.get(HawkConfig.HOME_REC, 0) == 1 && sortXml.list != null && sortXml.list.videoList != null && sortXml.list.videoList.size() > 0) {
+                            if (sortXml != null && ConfigStore.getInt(HawkConfig.HOME_REC, 0) == 1 && sortXml.list != null && sortXml.list.videoList != null && sortXml.list.videoList.size() > 0) {
                                 ArrayList<String> ids = new ArrayList<>();
                                 for (Movie.Video vod : sortXml.list.videoList) {
                                     ids.add(vod.id);
@@ -194,7 +195,7 @@ public class SourceViewModel extends ViewModel {
                     public void onOk(String sortJson) {
                         if (sortJson != null) {
                             AbsSortXml sortXml = sortJson(sortResult, sortJson);
-                            if (sortXml != null && Hawk.get(HawkConfig.HOME_REC, 0) == 1) {
+                            if (sortXml != null && ConfigStore.getInt(HawkConfig.HOME_REC, 0) == 1) {
                                 AbsXml absXml = json(null, sortJson, sourceBean.getKey());
                                 if (absXml != null && absXml.movie != null && absXml.movie.videoList != null && absXml.movie.videoList.size() > 0) {
                                     sortXml.videoList = absXml.movie.videoList;

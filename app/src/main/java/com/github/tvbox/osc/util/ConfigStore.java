@@ -55,6 +55,8 @@ public final class ConfigStore {
             HawkConfig.LIVE_CONNECT_TIMEOUT,
             HawkConfig.FAST_SEARCH_MODE,
             HawkConfig.SHOW_PREVIEW,
+            HawkConfig.LIVE_CHANNEL,
+            HawkConfig.PLAY_TIME_STEP,
     };
 
     private ConfigStore() {

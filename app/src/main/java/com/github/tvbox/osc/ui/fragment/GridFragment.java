@@ -28,6 +28,7 @@ import com.github.tvbox.osc.ui.adapter.GridAdapter;
 import com.github.tvbox.osc.ui.dialog.GridFilterDialog;
 import com.github.tvbox.osc.ui.tv.widget.LoadMoreView;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
+import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.viewmodel.SourceViewModel;
 import com.orhanobut.hawk.Hawk;
@@ -207,7 +208,7 @@ public class GridFragment extends BaseLazyFragment {
                         focusedView = view;
                         changeView(video.id,video.tag.equals("folder"));
                     }
-                    else if(homeSourceBean.isQuickSearch() && Hawk.get(HawkConfig.FAST_SEARCH_MODE, false) && enableFastSearch()){
+                    else if(homeSourceBean.isQuickSearch() && ConfigStore.getBool(HawkConfig.FAST_SEARCH_MODE, false) && enableFastSearch()){
                         jumpActivity(FastSearchActivity.class, bundle);
                     }else{
                         if(TextUtils.isEmpty(video.id) || video.id.startsWith("msearch:")){

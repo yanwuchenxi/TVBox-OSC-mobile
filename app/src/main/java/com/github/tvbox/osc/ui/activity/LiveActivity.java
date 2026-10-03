@@ -53,6 +53,7 @@ import com.github.tvbox.osc.ui.widget.LinearSpacingItemDecoration;
 import com.github.tvbox.osc.ui.widget.PlayerMenuView;
 import com.github.tvbox.osc.ui.widget.PlayerTitleView;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
+import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.live.TxtSubscribe;
 import com.google.gson.JsonArray;
@@ -253,13 +254,13 @@ public class LiveActivity extends BaseActivity {
             } else if (!isListOrSettingLayoutVisible()) {
                 switch (keyCode) {
                     case KeyEvent.KEYCODE_DPAD_UP:
-                        if (Hawk.get(HawkConfig.LIVE_CHANNEL_REVERSE, false))
+                        if (ConfigStore.getBool(HawkConfig.LIVE_CHANNEL_REVERSE, false))
                             playNext();
                         else
                             playPrevious();
                         break;
                     case KeyEvent.KEYCODE_DPAD_DOWN:
-                        if (Hawk.get(HawkConfig.LIVE_CHANNEL_REVERSE, false))
+                        if (ConfigStore.getBool(HawkConfig.LIVE_CHANNEL_REVERSE, false))
                             playPrevious();
                         else
                             playNext();
@@ -375,7 +376,7 @@ public class LiveActivity extends BaseActivity {
             currentChannelGroupIndex = channelGroupIndex;
             currentLiveChannelIndex = liveChannelIndex;
             currentLiveChannelItem = getLiveChannels(currentChannelGroupIndex).get(currentLiveChannelIndex);
-            Hawk.put(HawkConfig.LIVE_CHANNEL, currentLiveChannelItem.getChannelName());
+            ConfigStore.putString(HawkConfig.LIVE_CHANNEL, currentLiveChannelItem.getChannelName());
             livePlayerManager.getLiveChannelPlayer(mVideoView, currentLiveChannelItem.getChannelName());
         }
 
@@ -530,7 +531,7 @@ public class LiveActivity extends BaseActivity {
                     case VideoView.STATE_PREPARING:
                     case VideoView.STATE_BUFFERING:
                         mHandler.removeCallbacks(mConnectTimeoutChangeSourceRun);
-                        mHandler.postDelayed(mConnectTimeoutChangeSourceRun, (Hawk.get(HawkConfig.LIVE_CONNECT_TIMEOUT, 1) + 1) * 5000);
+                        mHandler.postDelayed(mConnectTimeoutChangeSourceRun, (ConfigStore.getInt(HawkConfig.LIVE_CONNECT_TIMEOUT, 1) + 1) * 5000);
                         break;
                 }
             }
@@ -580,7 +581,7 @@ public class LiveActivity extends BaseActivity {
             currentLiveChangeSourceTimes++;
             if (currentLiveChannelItem.getSourceNum() == currentLiveChangeSourceTimes) {
                 currentLiveChangeSourceTimes = 0;
-                Integer[] groupChannelIndex = getNextChannel(Hawk.get(HawkConfig.LIVE_CHANNEL_REVERSE, false) ? -1 : 1);
+                Integer[] groupChannelIndex = getNextChannel(ConfigStore.getBool(HawkConfig.LIVE_CHANNEL_REVERSE, false) ? -1 : 1);
                 playChannel(groupChannelIndex[0], groupChannelIndex[1], false);
             } else {
                 playNextSource();
@@ -741,26 +742,26 @@ public class LiveActivity extends BaseActivity {
                 mVideoView.start();
                 break;
             case 3://超时换源
-                Hawk.put(HawkConfig.LIVE_CONNECT_TIMEOUT, position);
+                ConfigStore.putInt(HawkConfig.LIVE_CONNECT_TIMEOUT, position);
                 break;
             case 4://超时换源
                 boolean select = false;
                 switch (position) {
                     case 0:
-                        select = !Hawk.get(HawkConfig.LIVE_SHOW_TIME, false);
-                        Hawk.put(HawkConfig.LIVE_SHOW_TIME, select);
+                        select = !ConfigStore.getBool(HawkConfig.LIVE_SHOW_TIME, false);
+                        ConfigStore.putBool(HawkConfig.LIVE_SHOW_TIME, select);
                         break;
                     case 1:
-                        select = !Hawk.get(HawkConfig.LIVE_SHOW_NET_SPEED, false);
-                        Hawk.put(HawkConfig.LIVE_SHOW_NET_SPEED, select);
+                        select = !ConfigStore.getBool(HawkConfig.LIVE_SHOW_NET_SPEED, false);
+                        ConfigStore.putBool(HawkConfig.LIVE_SHOW_NET_SPEED, select);
                         break;
                     case 2:
-                        select = !Hawk.get(HawkConfig.LIVE_CHANNEL_REVERSE, false);
-                        Hawk.put(HawkConfig.LIVE_CHANNEL_REVERSE, select);
+                        select = !ConfigStore.getBool(HawkConfig.LIVE_CHANNEL_REVERSE, false);
+                        ConfigStore.putBool(HawkConfig.LIVE_CHANNEL_REVERSE, select);
                         break;
                     case 3:
-                        select = !Hawk.get(HawkConfig.LIVE_CROSS_GROUP, false);
-                        Hawk.put(HawkConfig.LIVE_CROSS_GROUP, select);
+                        select = !ConfigStore.getBool(HawkConfig.LIVE_CROSS_GROUP, false);
+                        ConfigStore.putBool(HawkConfig.LIVE_CROSS_GROUP, select);
                         break;
                 }
                 liveSettingItemAdapter.selectItem(position, select, false);
@@ -835,7 +836,7 @@ public class LiveActivity extends BaseActivity {
     }
 
     private void initLiveState() {
-        String lastChannelName = Hawk.get(HawkConfig.LIVE_CHANNEL, "");
+        String lastChannelName = ConfigStore.getString(HawkConfig.LIVE_CHANNEL, "");
 
         int lastChannelGroupIndex = -1;
         int lastLiveChannelIndex = -1;
@@ -897,11 +898,11 @@ public class LiveActivity extends BaseActivity {
             liveSettingGroup.setLiveSettingItems(liveSettingItemList);
             liveSettingGroupList.add(liveSettingGroup);
         }
-        liveSettingGroupList.get(3).getLiveSettingItems().get(Hawk.get(HawkConfig.LIVE_CONNECT_TIMEOUT, 1)).setItemSelected(true);
-        liveSettingGroupList.get(4).getLiveSettingItems().get(0).setItemSelected(Hawk.get(HawkConfig.LIVE_SHOW_TIME, false));
-        liveSettingGroupList.get(4).getLiveSettingItems().get(1).setItemSelected(Hawk.get(HawkConfig.LIVE_SHOW_NET_SPEED, false));
-        liveSettingGroupList.get(4).getLiveSettingItems().get(2).setItemSelected(Hawk.get(HawkConfig.LIVE_CHANNEL_REVERSE, false));
-        liveSettingGroupList.get(4).getLiveSettingItems().get(3).setItemSelected(Hawk.get(HawkConfig.LIVE_CROSS_GROUP, false));
+        liveSettingGroupList.get(3).getLiveSettingItems().get(ConfigStore.getInt(HawkConfig.LIVE_CONNECT_TIMEOUT, 1)).setItemSelected(true);
+        liveSettingGroupList.get(4).getLiveSettingItems().get(0).setItemSelected(ConfigStore.getBool(HawkConfig.LIVE_SHOW_TIME, false));
+        liveSettingGroupList.get(4).getLiveSettingItems().get(1).setItemSelected(ConfigStore.getBool(HawkConfig.LIVE_SHOW_NET_SPEED, false));
+        liveSettingGroupList.get(4).getLiveSettingItems().get(2).setItemSelected(ConfigStore.getBool(HawkConfig.LIVE_CHANNEL_REVERSE, false));
+        liveSettingGroupList.get(4).getLiveSettingItems().get(3).setItemSelected(ConfigStore.getBool(HawkConfig.LIVE_CROSS_GROUP, false));
     }
 
     private void loadCurrentSourceList() {
@@ -996,7 +997,7 @@ public class LiveActivity extends BaseActivity {
             liveChannelIndex++;
             if (liveChannelIndex >= getLiveChannels(channelGroupIndex).size()) {
                 liveChannelIndex = 0;
-                if (Hawk.get(HawkConfig.LIVE_CROSS_GROUP, false)) {
+                if (ConfigStore.getBool(HawkConfig.LIVE_CROSS_GROUP, false)) {
                     do {
                         channelGroupIndex++;
                         if (channelGroupIndex >= liveChannelGroupList.size())
@@ -1007,7 +1008,7 @@ public class LiveActivity extends BaseActivity {
         } else {
             liveChannelIndex--;
             if (liveChannelIndex < 0) {
-                if (Hawk.get(HawkConfig.LIVE_CROSS_GROUP, false)) {
+                if (ConfigStore.getBool(HawkConfig.LIVE_CROSS_GROUP, false)) {
                     do {
                         channelGroupIndex--;
                         if (channelGroupIndex < 0)

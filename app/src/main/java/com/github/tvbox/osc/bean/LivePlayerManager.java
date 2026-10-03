@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.exifinterface.media.ExifInterface;
 
 import com.github.tvbox.osc.api.ApiConfig;
+import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.PlayerHelper;
 import com.orhanobut.hawk.Hawk;
@@ -22,10 +23,10 @@ public class LivePlayerManager {
 
     public void init(VideoView videoView) {
         try {
-            defaultPlayerConfig.put("pl", Hawk.get(HawkConfig.PLAY_TYPE, 0));
-            defaultPlayerConfig.put("ijk", Hawk.get(HawkConfig.IJK_CODEC, "软解码"));
-            defaultPlayerConfig.put("pr", Hawk.get(HawkConfig.PLAY_RENDER, 0));
-            defaultPlayerConfig.put("sc", Hawk.get(HawkConfig.PLAY_SCALE, 0));
+            defaultPlayerConfig.put("pl", ConfigStore.getInt(HawkConfig.PLAY_TYPE, 0));
+            defaultPlayerConfig.put("ijk", ConfigStore.getString(HawkConfig.IJK_CODEC, "软解码"));
+            defaultPlayerConfig.put("pr", ConfigStore.getInt(HawkConfig.PLAY_RENDER, 0));
+            defaultPlayerConfig.put("sc", ConfigStore.getInt(HawkConfig.PLAY_SCALE, 0));
         } catch (JSONException e) {
             e.printStackTrace();
         }

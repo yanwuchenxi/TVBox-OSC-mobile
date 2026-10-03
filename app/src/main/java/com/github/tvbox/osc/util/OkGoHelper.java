@@ -15,6 +15,7 @@ import com.lzy.okgo.OkGo;
 import com.lzy.okgo.https.HttpsUtils;
 import com.lzy.okgo.interceptor.HttpLoggingInterceptor;
 import com.lzy.okgo.model.HttpHeaders;
+import com.github.tvbox.osc.util.ConfigStore;
 import com.orhanobut.hawk.Hawk;
 import com.squareup.picasso.Picasso;
 
@@ -42,7 +43,7 @@ public class OkGoHelper {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor("OkExoPlayer");
 
-        if (Hawk.get(HawkConfig.DEBUG_OPEN, false)) {
+        if (ConfigStore.getBool(HawkConfig.DEBUG_OPEN, false)) {
             loggingInterceptor.setPrintLevel(HttpLoggingInterceptor.Level.BODY);
             loggingInterceptor.setColorLevel(Level.INFO);
         } else {
@@ -95,7 +96,7 @@ public class OkGoHelper {
         dnsHttpsList.add("360");
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor("OkExoPlayer");
-        if (Hawk.get(HawkConfig.DEBUG_OPEN, false)) {
+        if (ConfigStore.getBool(HawkConfig.DEBUG_OPEN, false)) {
             loggingInterceptor.setPrintLevel(HttpLoggingInterceptor.Level.BODY);
             loggingInterceptor.setColorLevel(Level.INFO);
         } else {
@@ -111,7 +112,7 @@ public class OkGoHelper {
         builder.connectionSpecs(getConnectionSpec());
         builder.cache(new Cache(new File(App.getInstance().getCacheDir().getAbsolutePath(), "dohcache"), 10 * 1024 * 1024));
         OkHttpClient dohClient = builder.build();
-        String dohUrl = getDohUrl(Hawk.get(HawkConfig.DOH_URL, 0));
+        String dohUrl = getDohUrl(ConfigStore.getInt(HawkConfig.DOH_URL, 0));
         dnsOverHttps = new DnsOverHttps.Builder().client(dohClient).url(dohUrl.isEmpty() ? null : HttpUrl.get(dohUrl)).build();
     }
     static OkHttpClient defaultClient = null;
@@ -131,7 +132,7 @@ public class OkGoHelper {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor("OkGo");
 
-        if (Hawk.get(HawkConfig.DEBUG_OPEN, false)) {
+        if (ConfigStore.getBool(HawkConfig.DEBUG_OPEN, false)) {
             loggingInterceptor.setPrintLevel(HttpLoggingInterceptor.Level.BODY);
             loggingInterceptor.setColorLevel(Level.INFO);
         } else {

@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.model.HttpHeaders;
+import com.github.tvbox.osc.util.ConfigStore;
 import com.orhanobut.hawk.Hawk;
 
 import org.json.JSONObject;
@@ -143,7 +144,7 @@ public class FileUtils {
             }
             Matcher m = URLJOIN.matcher(name);
             if (m.find()) {
-                if (!Hawk.get(HawkConfig.DEBUG_OPEN, false)) {
+                if (!ConfigStore.getBool(HawkConfig.DEBUG_OPEN, false)) {
                     String cache = getCache(MD5.encode(name));
                     if (StringUtils.isEmpty(cache)) {
                         String netStr = get(name);

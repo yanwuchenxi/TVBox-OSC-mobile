@@ -30,7 +30,7 @@
 - [x] SourceViewModel **全部** HTTP（sort/list/detail/search/play）改用 httpGet/NetworkClient，已无 OkGo
 - [x] 配置试点：`ConfigStore`（SharedPreferences + Gson，订阅/API；Hawk 双写 + 启动迁移）
 - [x] ConfigStore 通用 get/put + 常用键启动迁移；SettingActivity 设置项改走 ConfigStore
-- [ ] 播放器/直播等其余 Hawk 调用继续切换
+- [x] 播放器/直播/详情/嗅探等大量 HawkConfig 读写改 ConfigStore（LIVE_HISTORY 等复杂类型仍 Hawk）
 
 ### 工程
 - [ ] AGP 8 + Kotlin 1.9 + OkHttp 4（未做，避免大版本一次翻车）

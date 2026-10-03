@@ -18,6 +18,7 @@ import com.github.tvbox.osc.server.ControlManager;
 import com.github.tvbox.osc.ui.activity.MainActivity;
 import com.github.tvbox.osc.util.EpgUtil;
 import com.github.tvbox.osc.util.FileUtils;
+import com.github.tvbox.osc.util.ConfigStore;
 import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.LOG;
 import com.github.tvbox.osc.util.OkGoHelper;
@@ -108,7 +109,7 @@ public class App extends MultiDexApplication {
         // Hawk
         Hawk.init(this).build();
         com.github.tvbox.osc.util.ConfigStore.init(this);
-        Hawk.put(HawkConfig.DEBUG_OPEN, false);
+        ConfigStore.putBool(HawkConfig.DEBUG_OPEN, false);
 
         putDefault(HawkConfig.HOME_REC, 0);                  //推荐: 0=豆瓣热播, 1=站点推荐
         putDefault(HawkConfig.PLAY_TYPE, 2);                 //播放器: 0=系统, 1=IJK, 2=Exo

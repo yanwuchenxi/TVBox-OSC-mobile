@@ -34,6 +34,7 @@ import com.github.tvbox.osc.ui.dialog.DoubanSuggestDialog
 import com.github.tvbox.osc.ui.dialog.SearchCheckboxDialog
 import com.github.tvbox.osc.ui.dialog.SearchSuggestionsDialog
 import com.github.tvbox.osc.util.FastClickCheckUtil
+import com.github.tvbox.osc.util.ConfigStore
 import com.github.tvbox.osc.util.HawkConfig
 import com.github.tvbox.osc.util.SearchHelper
 import com.github.tvbox.osc.viewmodel.SourceViewModel
@@ -416,7 +417,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
         if (mSearchSuggestionsDialog != null && mSearchSuggestionsDialog!!.isShow) {
             mSearchSuggestionsDialog!!.dismiss()
         }
-        if (!Hawk.get(HawkConfig.PRIVATE_BROWSING, false)) { //无痕浏览不存搜索历史
+        if (!ConfigStore.getBool(HawkConfig.PRIVATE_BROWSING, false)) { //无痕浏览不存搜索历史
             saveSearchHistory(title)
         }
         hideHotAndHistorySearch(true)
