@@ -937,6 +937,39 @@ private void parseJson(String apiUrl, String jsonStr) {
 
 
     /** 将 clan://localhost/相对路径 映射到外部存储真实文件并读取文本 */
+
+    /** 将配置内相对路径解析为 clan:// 或 http 绝对路径 */
+    private static String resolveRelativeToConfig(String configUrl, String path) {
+        if (path == null) return "";
+        path = path.trim();
+        if (path.isEmpty()) return path;
+        if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("clan://")
+                || path.startsWith("file://") || path.startsWith("img+")) {
+            return path;
+        }
+        // csp_Xxx 是类名不是路径
+        if (path.startsWith("csp_")) return path;
+        if (configUrl == null) configUrl = "";
+        if (configUrl.startsWith("clan://localhost/")) {
+            String base = configUrl;
+            int slash = base.lastIndexOf('/');
+            if (slash >= 0) base = base.substring(0, slash + 1);
+            while (path.startsWith("./")) path = path.substring(2);
+            while (path.startsWith("/")) path = path.substring(1);
+            return base + path;
+        }
+        if (configUrl.startsWith("http://") || configUrl.startsWith("https://")) {
+            try {
+                int slash = configUrl.lastIndexOf('/');
+                String base = slash >= 0 ? configUrl.substring(0, slash + 1) : configUrl;
+                while (path.startsWith("./")) path = path.substring(2);
+                return base + path;
+            } catch (Throwable ignored) {
+            }
+        }
+        return path;
+    }
+
     private static String readClanLocalhostFile(String clanUrl) throws Exception {
         if (clanUrl == null || !clanUrl.startsWith("clan://localhost/")) return null;
         String rel = clanUrl.substring("clan://localhost/".length());
