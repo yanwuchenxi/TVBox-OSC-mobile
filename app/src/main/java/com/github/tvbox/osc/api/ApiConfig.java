@@ -1023,12 +1023,18 @@ private void parseJson(String apiUrl, String jsonStr) {
     }
 
     String fixContentPath(String url, String content) {
-        if (content.contains("\"./")) {
-            if(!url.startsWith("http") && !url.startsWith("clan://")){
+        if (content.contains("./")) {
+            if (url != null && url.startsWith("clan://localhost/")) {
+                int slash = url.lastIndexOf('/');
+                String base = slash >= 0 ? url.substring(0, slash + 1) : "clan://localhost/";
+                content = content.replace("./", base);
+                return content;
+            }
+            if (!url.startsWith("http") && !url.startsWith("clan://")) {
                 url = "http://" + url;
             }
-            if(url.startsWith("clan://"))url=clanToAddress(url);
-            content = content.replace("./", url.substring(0,url.lastIndexOf("/") + 1));
+            if (url.startsWith("clan://")) url = clanToAddress(url);
+            content = content.replace("./", url.substring(0, url.lastIndexOf("/") + 1));
         }
         return content;
     }
