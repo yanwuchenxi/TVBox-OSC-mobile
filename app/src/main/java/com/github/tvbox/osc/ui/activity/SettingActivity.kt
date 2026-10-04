@@ -46,6 +46,46 @@ class SettingActivity : BaseVbActivity<ActivitySettingBinding>() {
     override fun init() {
 
         mBinding.titleBar.leftView.setOnClickListener { onBackPressed() }
+
+        // 配置地址：跳转订阅管理
+        try {
+            val api = com.github.tvbox.osc.util.ConfigStore.getApiUrl()
+            mBinding.tvConfigApi.text = if (api.isNullOrBlank()) "未配置" else {
+                if (api.length > 28) api.take(14) + "…" + api.takeLast(10) else api
+            }
+        } catch (_: Throwable) {
+            mBinding.tvConfigApi.text = "订阅管理"
+        }
+        mBinding.llConfigApi.setOnClickListener {
+            jumpActivity(SubscriptionActivity::class.java)
+        }
+
+        // 直播地址摘要
+        try {
+            val live = Hawk.get(HawkConfig.LIVE_URL, "") ?: ""
+            mBinding.tvLiveApi.text = when {
+                live.isBlank() -> "未设置"
+                live.length > 28 -> live.take(14) + "…" + live.takeLast(10)
+                else -> live
+            }
+        } catch (_: Throwable) {
+            mBinding.tvLiveApi.text = "未设置"
+        }
+
+        // 缓存大小
+        try {
+            val cachePath = FileUtils.getCachePath()
+            val size = FileUtils.getFolderSize(File(cachePath))
+            mBinding.tvCacheSize.text = when {
+                size >= 1024L * 1024L * 1024L -> String.format("%.1fGB", size / (1024.0 * 1024.0 * 1024.0))
+                size >= 1024L * 1024L -> String.format("%.1fMB", size / (1024.0 * 1024.0))
+                size >= 1024L -> String.format("%.0fKB", size / 1024.0)
+                else -> size.toString() + "B"
+            }
+        } catch (_: Throwable) {
+            mBinding.tvCacheSize.text = "0MB"
+        }
+
         mBinding.tvMediaCodec.text = Hawk.get(HawkConfig.IJK_CODEC, "")
 
         mBinding.tvDns.text = OkGoHelper.dnsHttpsList[Hawk.get(HawkConfig.DOH_URL, 0)]
